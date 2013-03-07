@@ -1,0 +1,90 @@
+//============================================================================//
+//   FF_GLOBALS.simba
+//----------------------------------------------------------------------------//
+
+{ ~~ Global Variables ~~ }
+var
+  x, y: Integer;
+  WhenBreak, AntiBanAmount: Integer;
+  ActAFK, AutoUpdate: Boolean;
+  SRLStats_Username, SRLStats_Password: String;
+
+const
+{ *** For Players }
+  P_BANK_TAB  = 0;
+  P_BANK_SLOT = 1;
+  P_MODE      = 2;
+  P_TYPE      = 3;
+  P_BOW       = 4;
+  P_BANK_LOC  = 5;
+  P_SCKNIFE   = 6;
+// Progress Report
+  P_XP        = 7;  // Extended
+  P_STRUNG    = 8;
+  P_CUT       = 9;
+// Item Property
+  P_NAME      = 10;
+  P_TYPE_NAME = 11;
+  P_XP_GAIN   = 12; // Extended
+  P_GRID_LOC  = 13;
+
+{ *** For Modes }
+  MODE_CUT               = 1;   MODE_LAST = 8;
+  MODE_STRING            = 2;
+  MODE_SHAFTS            = 3;
+  MODE_SHAFT_TO_HEADLESS = 4;
+  MODE_HEADLESS_TO_ARROW = 5;
+  //MODE_SHAFT_TO_ARROW    = ;
+
+  MODE_UNF_TO_BOLT       = 6;
+  MODE_TIP_TO_DART       = 7;
+  MODE_UNSTRUNG_CROSSBOW = 8;   // Stock + limbs = UNSTRUNG_CROSSBOW
+
+  MODE_STRING_CROSSBOW   = 2;
+
+{ *** For Type (Bow) }
+  TYPE_NORMAL    = 0;   TYPE_LAST = 25;
+  TYPE_OAK       = 1;
+  TYPE_COMP_OGRE = 2;
+  TYPE_WILLOW    = 3;
+  TYPE_TEAK      = 4;
+  TYPE_MAPLE     = 5;
+  TYPE_MAHOGANY  = 6;
+  TYPE_YEW       = 7;
+  TYPE_MAGIC     = 8;
+
+{ *** For Type (Arrow) }
+  TYPE_BRONZE         = 10;
+  TYPE_OGRE           = 11;
+  TYPE_IRON           = 12;
+  TYPE_STEEL          = 13;
+  TYPE_MITHRIL        = 14;
+  TYPE_BROAD          = 15;
+  TYPE_ADAMANT        = 16;
+  TYPE_RUNE           = 17;
+  TYPE_ABYSSALBANE    = 18;
+  TYPE_BASILISKBANE   = 19;
+  TYPE_DRAGONBANE     = 20;
+  TYPE_WALLASALKIBANE = 21;
+  TYPE_DRAGON         = 22;
+
+{ *** For Type (Extras for bolts) }
+  TYPE_BLURITE        = 23;
+  TYPE_SILVER         = 24;
+  TYPE_BROAD_TIPPED   = 25;
+
+{ *** For Bow }
+  BOW_SHORT            = 1;   BOW_LAST = 8;
+  BOW_SHIELD           = 2;
+  BOW_COMP_OGRE        = 3;
+
+  BOW_CROSSBOW         = 4;
+  BOW_OFFHAND_CROSSBOW = 5;
+  BOW_2H_CROSSBOW      = 6;
+
+  DART_NORMAL          = 7;
+  DART_OFFHAND         = 8;
+
+  BOW_N_A       = 0;
+
+//============================================================================//

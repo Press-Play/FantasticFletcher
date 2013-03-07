@@ -1,0 +1,1206 @@
+//============================================================================//
+//   FF_PLAYERFORM.simba
+//----------------------------------------------------------------------------//
+
+{$DEFINE PROMO_TIMER}
+{$I FF_DrawFormPromo.simba}
+
+const
+  FONT_SIZE = 8;
+  FONT_COLOR = clBlack;
+  FONT_NAME = 'Verdana';
+
+  LBL_PADDING_LEFT = 15;
+  LBL_PADDING_TOP = 15;
+  LBL_VERTICAL_SPACING = FONT_SIZE + 20;
+
+  BOX_PADDING_LEFT = 120;
+  BOX_PADDING_TOP = LBL_PADDING_TOP-2;
+  BOX_VERTICAL_SPACING = LBL_VERTICAL_SPACING;
+  BOX_LENGTH_SHORT = 120;
+  BOX_LENGTH_LONG = 200;
+
+  DESCRIPTION_PADDING = BOX_PADDING_LEFT + BOX_LENGTH_SHORT + 10;
+  INDENT_PADDING = 25;
+
+var
+  FormSetupComplete: Boolean;
+
+  FrmDesign: TForm;
+
+  P: TPageControl;
+
+  TabGlobals,
+  TabPlayers: TTabSheet;
+
+  ImageBanner,
+  ImageLine: TImage;
+
+  ImagePromo: Array of TImage;
+
+  TimerPromo: TTimer;
+
+  IndexPromo: Integer;
+
+  PlayerList: TListBox;
+
+  lblWhenBreak, lblWhenBreakDescription,
+  lblActAFK, lblActAFKDescription,
+  lblAntiBan, lblAntiBanDescription,
+  lblSRLStatsUser,
+  lblSRLStatsPass,
+  lblHeadingCredentials,
+  lblHeadingBankDetails,
+  lblHeadingModeSetup,
+  lblHeadingPlayerList,
+  lblName,
+  lblPass,
+  lblPin,
+  lblBankLoc,
+  lblBankTab,
+  lblBankSlot,
+  lblPMode,
+  lblPType,
+  lblPBow,
+  lblSCKnife: TLabel;
+
+  lblAbout: Array of TLabel;
+
+  boxTextWhenBreak,
+  boxTextAntiBan,
+  boxTextSRLStatsUser,
+  boxTextSRLStatsPass,
+  boxTextName,
+  boxTextPass,
+  boxTextPin,
+  boxTextBankTab,
+  boxTextBankSlot: TEdit;
+
+  boxDropActAFK,
+  boxDropBankLoc,
+  boxDropPMode,
+  boxDropPType,
+  boxDropPBow,
+  boxDropPSCKnife: TComboBox;
+
+  btnPressPlay,
+  btnSave,
+  btnLoad,
+  btnAddPlayer: TButton;
+
+  boolIndex: Array[0..1] of Boolean;
+  bankIndex: Array[0..21] of Variant;
+  {ModeIndex: Array[0..MODE_LAST] of Integer;
+  TypeIndex: Array[0..TYPE_LAST] of Integer;
+  BowIndex: Array[0..BOW_LAST] of Integer; }
+
+procedure DeclareIndexes;
+begin
+  boolIndex[0] := True;
+  boolIndex[1] := False;
+
+  bankIndex[0]  := 'feb';
+  bankIndex[1]  := 'fwb';
+  bankIndex[2]  := 'veb';
+  bankIndex[3]  := 'vwb';
+  bankIndex[4]  := 'geb';
+  bankIndex[5]  := 'db';
+  bankIndex[6]  := 'akb';
+  bankIndex[7]  := 'eb';
+  bankIndex[8]  := 'ctb';
+  bankIndex[9]  := 'clt';
+  bankIndex[10] := 'nab';
+  bankIndex[11] := 'sab';
+  bankIndex[12] := 'ynb';
+  bankIndex[13] := 'ngb';
+  bankIndex[14] := 'sgb';
+  bankIndex[15] := 'wgb';
+  bankIndex[16] := 'fgb';
+  bankIndex[17] := SRL_BANK_SW;
+  bankIndex[18] := SRL_BANK_CW;
+  bankIndex[19] := SRL_BANK_B;
+  bankIndex[20] := SRL_BANK_GG;
+  bankIndex[21] := SRL_BANK_SP;
+end;
+
+procedure ResetGlobalsForm;
+begin
+  boxTextWhenBreak.Text := '240';
+  boxDropActAFK.ItemIndex := 1;
+  boxTextAntiBan.Text := '100';
+  boxTextSRLStatsUser.Text := '';
+  boxTextSRLStatsPass.Text := '';
+end;
+
+procedure ResetPlayerForm;
+begin
+  boxTextName.Text := '';
+  boxTextPass.Text := '';
+  boxTextPin.Text := '';
+  boxTextBankTab.Text := '';
+  boxTextBankSlot.Text := '';
+  boxDropBankLoc.ItemIndex := 17; //SRL_BANK_SW
+  boxDropPMode.ItemIndex := MODE_CUT;
+  boxDropPType.ItemIndex := TYPE_MAPLE;
+  boxDropPBow.ItemIndex := BOW_SHIELD;
+  boxDropPSCKnife.ItemIndex := 1; //False
+end;
+
+procedure RefreshPlayerList;
+var
+  i: Integer;
+begin
+  for i := 0 to HowManyPlayers-1 do
+  begin
+    PlayerList.Items.Add(IntToStr(i)+': '+Players[i].Name);
+    Writeln('Added a player: '+Players[i].Name);
+  end;
+end;
+
+procedure ClickAddPlayer(Sender: TObject);
+begin
+  if (boxTextName.Text = '')
+  or (boxTextPass.Text = '')
+  or (boxTextPin.Text = '')
+  or (boxTextBankTab.Text = '')
+  or (boxTextBankSlot.Text = '') then
+  begin
+    Disguise('Form Incomplete');
+    ShowMessage('Part of the player form is incomplete.' +Chr(13)+
+                'It must all be filled in to add a player.');
+    Disguise(ScriptName);
+    Exit;
+  end;
+
+  Writeln('Added a player: '+boxTextName.Text);
+  Debug('Old amount of players: '+IntToStr(PlayerList.Items.Count), 2);
+  PlayerList.Items.Add(IntToStr(PlayerList.Items.Count)+': '+boxTextName.Text);
+  Debug('New amount of players: '+IntToStr(PlayerList.Items.Count), 2);
+  HowManyPlayers := PlayerList.Items.Count;
+  NumberOfPlayers(HowManyPlayers);
+  with Players[PlayerList.Items.Count-1] do
+  begin
+    Name        := boxTextName.Text;
+    Pass        := boxTextPass.Text;
+    Pin         := boxTextPin.Text;
+
+    Arrays[P_BANK_LOC]    := [bankIndex[boxDropBankLoc.ItemIndex]];
+    Integers[P_BANK_TAB]  := StrToInt(boxTextBankTab.Text);
+    Integers[P_BANK_SLOT] := StrToInt(boxTextBankSlot.Text);
+    Integers[P_MODE]      := boxDropPMode.ItemIndex;
+    Integers[P_TYPE]      := boxDropPType.ItemIndex;
+    Integers[P_BOW]       := boxDropPBow.ItemIndex;
+    Booleans[P_SCKNIFE]   := boolIndex[boxDropPSCKnife.ItemIndex];
+
+    Member      := true;
+    Active      := true;
+  end;
+  ResetPlayerForm;
+end;
+
+procedure ClickSave(Sender: TObject);
+var
+  FilePath: String;
+  i: Integer;
+begin
+  //Writeln('This feature is not yet implemented.');
+  {if not FileExists(ScriptPath + 'Form_Settings.ini') then
+    if not CreateFile(ScriptPath + 'Form_Settings.ini') then
+      Exit;  }
+  FilePath := ScriptPath + 'Form_Settings.ini';
+
+  WriteINI('GLOBALS', 'WhenBreak', boxTextWhenBreak.Text, FilePath);
+  WriteINI('GLOBALS', 'ActAFK', IntToStr(boxDropActAFK.ItemIndex), FilePath);
+  WriteINI('GLOBALS', 'AntiBan', boxTextAntiBan.Text, FilePath);
+  WriteINI('GLOBALS', 'SRLStatsUser', boxTextSRLStatsUser.Text, FilePath);
+  WriteINI('GLOBALS', 'SRLStatsPass', boxTextSRLStatsPass.Text, FilePath);
+
+  if (boxTextName.Text <> '') then
+    ClickAddPlayer(boxTextName);
+
+  WriteINI('GLOBALS', 'HowManyPlayers', IntToStr(PlayerList.Items.Count), FilePath);
+  for i := 0 to PlayerList.Items.Count-1 do
+  begin
+    WriteINI('PLAYER '+IntToStr(i), 'Name', Players[i].Name, FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Pass', Players[i].Pass, FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Pin', Players[i].Pin, FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Arrays[P_BANK_LOC]', IntToStr(Players[i].Arrays[P_BANK_LOC][0]), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Integers[P_BANK_TAB]', IntToStr(Players[i].Integers[P_BANK_TAB]), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Integers[P_BANK_SLOT]', IntToStr(Players[i].Integers[P_BANK_SLOT]), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Integers[P_MODE]', IntToStr(Players[i].Integers[P_MODE]), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Integers[P_TYPE]', IntToStr(Players[i].Integers[P_TYPE]), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Integers[P_BOW]', IntToStr(Players[i].Integers[P_BOW]), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Booleans[P_SCKNIFE]', BoolToStr(Players[i].Booleans[P_SCKNIFE]), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Member', BoolToStr(Players[i].Member), FilePath);
+    WriteINI('PLAYER '+IntToStr(i), 'Active', BoolToStr(Players[i].Active), FilePath);
+  end;
+  Disguise('Saved');
+  ShowMessage('Your global and player settings have been successfully saved.');
+  Disguise(ScriptName);
+end;
+
+procedure ClickLoad(Sender: TObject);
+var
+  FilePath: String;
+  i: Integer;
+begin
+  FilePath := ScriptPath + 'Form_Settings.ini';
+
+  boxTextWhenBreak.Text := ReadINI('GLOBALS', 'WhenBreak', FilePath);
+  boxDropActAFK.ItemIndex := StrToInt(ReadINI('GLOBALS', 'ActAFK', FilePath));
+  boxTextAntiBan.Text := ReadINI('GLOBALS', 'AntiBan', FilePath);
+  boxTextSRLStatsUser.Text := ReadINI('GLOBALS', 'SRLStatsUser', FilePath);
+  boxTextSRLStatsPass.Text := ReadINI('GLOBALS', 'SRLStatsPass', FilePath);
+
+  HowManyPlayers := StrToInt(ReadINI('GLOBALS', 'HowManyPlayers', FilePath));
+  Debug('HowManyPlayers = ' +IntToStr(HowManyPlayers), 1);
+  NumberOfPlayers(HowManyPlayers);
+  for i := 0 to HowManyPlayers-1 do
+  begin
+    Players[i].Name := ReadINI('PLAYER '+IntToStr(i), 'Name', FilePath);
+    Players[i].Pass := ReadINI('PLAYER '+IntToStr(i), 'Pass', FilePath);
+    Players[i].Pin := ReadINI('PLAYER '+IntToStr(i), 'Pin', FilePath);
+    SetLength(Players[i].Arrays[P_BANK_LOC], 1);
+    Players[i].Arrays[P_BANK_LOC][0] := StrToInt(ReadINI('PLAYER '+IntToStr(i), 'Arrays[P_BANK_LOC]', FilePath));
+    Players[i].Integers[P_BANK_TAB] := StrToInt(ReadINI('PLAYER '+IntToStr(i), 'Integers[P_BANK_TAB]', FilePath));
+    Players[i].Integers[P_BANK_SLOT] := StrToInt(ReadINI('PLAYER '+IntToStr(i), 'Integers[P_BANK_SLOT]', FilePath));
+    Players[i].Integers[P_MODE] := StrToInt(ReadINI('PLAYER '+IntToStr(i), 'Integers[P_MODE]', FilePath));
+    Players[i].Integers[P_TYPE] := StrToInt(ReadINI('PLAYER '+IntToStr(i), 'Integers[P_TYPE]', FilePath));
+    Players[i].Integers[P_BOW] := StrToInt(ReadINI('PLAYER '+IntToStr(i), 'Integers[P_BOW]', FilePath));
+    Players[i].Booleans[P_SCKNIFE] := StrToBool(ReadINI('PLAYER '+IntToStr(i), 'Booleans[P_SCKNIFE]', FilePath));
+    Players[i].Member := StrToBool(ReadINI('PLAYER '+IntToStr(i), 'Member', FilePath));
+    Players[i].Active := StrToBool(ReadINI('PLAYER '+IntToStr(i), 'Active', FilePath));
+  end;
+  RefreshPlayerList;
+  Disguise('Loaded');
+  ShowMessage('Your global and player settings have been successfully loaded.');
+  Disguise(ScriptName);
+end;
+
+procedure ClickPlay(Sender: TObject);
+begin
+  if (boxTextWhenBreak.Text = '')
+  or (boxTextAntiBan.Text = '') then
+  begin
+    Disguise('Form Incomplete');
+    ShowMessage('Part of the player form is incomplete.' +Chr(13)+
+                'It must all be filled in to add a player.');
+    Disguise(ScriptName);
+    Exit;
+  end;
+  if (boxTextSRLStatsUser.Text = '')
+  or (boxTextSRLStatsPass.Text = '') then
+  begin
+    Disguise('No SRL Stats Account');
+    ShowMessage('You have not entered a SRL Stats account.' +Chr(13)+
+                'Please consider making one at:' +Chr(13)+
+                'http://stats.villavu.com/');
+    Disguise(ScriptName);
+  end;
+  if (boxTextName.Text <> '') then
+    ClickAddPlayer(boxTextName);
+
+  FormSetupComplete := True;
+  AutoUpdate        := True;
+  WhenBreak         := StrToInt(boxTextWhenBreak.Text);
+  ActAFK            := boolIndex[boxDropActAFK.ItemIndex];
+  AntiBanAmount     := StrToInt(boxTextAntiBan.Text);
+  SRLStats_Username := boxTextSRLStatsUser.Text;
+  SRLStats_Password := boxTextSRLStatsPass.Text;
+
+  frmDesign.Close;
+end;
+
+procedure InitForm_Buttons;
+begin
+  btnPressPlay := TButton.Create(FrmDesign);
+  btnSave := TButton.Create(FrmDesign);
+  btnLoad := TButton.Create(FrmDesign);
+  btnAddPlayer := TButton.Create(FrmDesign);
+
+  with btnPressPlay do
+  begin
+    Parent := FrmDesign;
+    Left := 580;
+    Top := 235;
+    Width := 50;
+    Height := 50;
+    OnClick := @ClickPlay;
+    Font.Name := 'Wingdings 3';
+    Font.Size := 20;
+    Font.Style := [fsBold];
+    Caption := Char('u');
+    Hint := 'Press Play';
+    ShowHint := True;
+  end;
+  with btnSave do
+  begin
+    Parent := FrmDesign;
+    Left := 530;
+    Top := 235;
+    Width := 50;
+    Height := 50;
+    OnClick := @ClickSave;
+    Font.Name := 'Wingdings';
+    Font.Size := 20;
+    Font.Style := [fsBold];
+    Caption := Chr(60);
+    Hint := 'Save settings';
+    ShowHint := True;
+  end;
+  with btnLoad do
+  begin
+    Parent := FrmDesign;
+    Left := 480;
+    Top := 235;
+    Width := 50;
+    Height := 50;
+    OnClick := @ClickLoad;
+    Font.Name := 'Wingdings';
+    Font.Size := 20;
+    Font.Style := [fsBold];
+    Caption := Char('1');
+    Hint := 'Load settings';
+    ShowHint := True;
+  end;
+  with btnAddPlayer do
+  begin
+    Parent := FrmDesign;
+    Left := 430;
+    Top := 235;
+    Width := 50;
+    Height := 50;
+    OnClick := @ClickAddPlayer;
+    Font.Size := 20;
+    Font.Style := [fsBold];
+    Caption := '+';
+    Hint := 'Add player';
+    ShowHint := True;
+  end;
+end;
+
+procedure InitForm_PlayerList;
+begin
+  PlayerList := TListBox.Create(nil);
+
+  with PlayerList do
+  begin
+    Parent := P.Pages[1];
+    Left := 400;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*1);
+    Width := BOX_LENGTH_LONG;
+    Height := 11+BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*6);
+  end;
+end;
+
+procedure InitForm_DropdownBoxes_Players;
+begin
+  boxDropBankLoc := TComboBox.Create(FrmDesign);
+  boxDropPMode := TComboBox.Create(FrmDesign);
+  boxDropPType := TComboBox.Create(FrmDesign);
+  boxDropPBow := TComboBox.Create(FrmDesign);
+  boxDropPSCKnife := TComboBox.Create(FrmDesign);
+
+  with boxDropBankLoc do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*5);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+    Style := csDropDownList;
+    Items.Add('Falador East Bank');     //0
+    Items.Add('Falador West Bank');     //1
+    Items.Add('Varrock East Bank');     //2
+    Items.Add('Varrock West Bank');     //3
+    Items.Add('Varrock GE Bank');       //4
+    Items.Add('Draynor Bank');          //5
+    Items.Add('Al-Kharid Bank');        //6
+    Items.Add('Edgeville Bank');        //7
+    Items.Add('Catherby bank');         //8
+    Items.Add('Camelot bank');          //9
+    Items.Add('North Ardougne bank');   //10
+    Items.Add('South Ardougne bank');   //11
+    Items.Add('Yanille bank');          //12
+    Items.Add('North gnome bank');      //13
+    Items.Add('South gnome bank');      //14
+    Items.Add('Warrior guild bank');    //15
+    Items.Add('Fishing guild bank');    //16
+    Items.Add('Soul Wars chest');       //17
+    Items.Add('Castle Wars chest');     //18
+    Items.Add('Burthrope chest');       //19
+    Items.Add('Gamer''s Grotto chest'); //20
+    Items.Add('Shantay Pass chest');    //21
+  end;
+  with boxDropPMode do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*9);
+    Width := BOX_LENGTH_LONG+200;
+    Height := FONT_SIZE + 2;
+    Style := csDropDownList;
+    Items.Add('Cut logs into bows, or cut logs into crossbow limbs');
+    Items.Add('String unstrung bows, or string unstrung crossbows');
+    Items.Add('Cut logs into shafts');
+    Items.Add('Fletch arrow shafts into headless arrows');
+    Items.Add('Fletch headless arrows into arrows');
+    Items.Add('Fletch unfinished bolts into bolts');
+    Items.Add('Fletch dart tips into darts');
+    Items.Add('Join crossbow limbs w/stocks to make unstrung crossbows');
+  end;
+  with boxDropPType do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*10);
+    Width := BOX_LENGTH_LONG+200;
+    Height := FONT_SIZE + 2;
+    Style := csDropDownList;
+    Items.Add('N/A');
+    Items.Add('Log: Normal');
+    Items.Add('Log: Oak');
+    Items.Add('Log: Comp ogre');
+    Items.Add('Log: Willow');
+    Items.Add('Log: Teak');
+    Items.Add('Log: Maple');
+    Items.Add('Log: Mahogany');
+    Items.Add('Log: Yew');
+    Items.Add('Log: Magic');
+    Items.Add('Metal: Bronze');
+    Items.Add('Metal: Ogre');
+    Items.Add('Metal: Iron');
+    Items.Add('Metal: Steel');
+    Items.Add('Metal: Mithril');
+    Items.Add('Metal: Broad');
+    Items.Add('Metal: Adamant');
+    Items.Add('Metal: Rune');
+    Items.Add('Metal: Abyssalbane');
+    Items.Add('Metal: Basiliskbane');
+    Items.Add('Metal: Dragonbane');
+    Items.Add('Metal: Wallasalkibane');
+    Items.Add('Metal: Dragon');
+    Items.Add('Extra(bolts): Blurite');
+    Items.Add('Extra(bolts): Silver');
+    Items.Add('Extra(bolts): Broad-tipped');
+  end;
+  with boxDropPBow do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*11);
+    Width := BOX_LENGTH_LONG+200;
+    Height := FONT_SIZE + 2;
+    Style := csDropDownList;
+    Items.Add('N/A');
+    Items.Add('Bow: Short');
+    Items.Add('Bow: Shield');
+    Items.Add('Bow: Comp ogre');
+    Items.Add('Bow: Crossbow');
+    Items.Add('Bow: Offhand crossbow');
+    Items.Add('Bow: 2H crossbow');
+    Items.Add('Dart: Normal');
+    Items.Add('Dart: Offhand');
+  end;
+  with boxDropPSCKnife do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*12);
+    Width := BOX_LENGTH_LONG+200;
+    Height := FONT_SIZE + 2;
+    Style := csDropDownList;
+    Items.Add('True');
+    Items.Add('False');
+  end;
+end;
+
+procedure InitForm_DropdownBoxes_Globals;
+begin
+  boxDropActAFK := TComboBox.Create(FrmDesign);
+  with boxDropActAFK do
+  begin
+    Parent := P.Pages[0];
+    Left := BOX_PADDING_LEFT;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*1);
+    Width := BOX_LENGTH_SHORT;
+    Height := FONT_SIZE + 2;
+    Style := csDropDownList;
+    Items.Add('True');
+    Items.Add('False');
+  end;
+end;
+
+procedure InitForm_Textboxes_Players;
+begin
+  boxTextName := TEdit.Create(FrmDesign);
+  boxTextPass := TEdit.Create(FrmDesign);
+  boxTextPin := TEdit.Create(FrmDesign);
+  boxTextBankTab := TEdit.Create(FrmDesign);
+  boxTextBankSlot := TEdit.Create(FrmDesign);
+
+  with boxTextName do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50; ;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*1);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+  end;
+  with boxTextPass do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50; ;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*2);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+    Font.Name := 'Wingdings';
+    PasswordChar := Chr(159); //Chr(108);
+  end;
+  with boxTextPin do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50; ;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*4);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+  end;
+  with boxTextBankTab do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50; ;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*6);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+  end;
+  with boxTextBankSlot do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50; ;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*7);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+  end;
+end;
+
+procedure InitForm_Textboxes_Globals;
+begin
+  boxTextWhenBreak := TEdit.Create(FrmDesign);
+  boxTextAntiBan := TEdit.Create(FrmDesign);
+
+  with boxTextWhenBreak do
+  begin
+    Parent := P.Pages[0];
+    Left := BOX_PADDING_LEFT;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*0);
+    Width := BOX_LENGTH_SHORT;
+    Height := FONT_SIZE + 2;
+  end;
+  with boxTextAntiBan do
+  begin
+    Parent := P.Pages[0];
+    Left := BOX_PADDING_LEFT;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*2);
+    Width := BOX_LENGTH_SHORT;
+    Height := FONT_SIZE + 2;
+  end;
+
+  boxTextSRLStatsUser := TEdit.Create(FrmDesign);
+  boxTextSRLStatsPass := TEdit.Create(FrmDesign);
+
+  with boxTextSRLStatsUser do
+  begin
+    Parent := P.Pages[0];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*4);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+  end;
+  with boxTextSRLStatsPass do
+  begin
+    Parent := P.Pages[0];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*5);
+    Width := BOX_LENGTH_LONG;
+    Height := FONT_SIZE + 2;
+    Font.Name := 'Wingdings';
+    PasswordChar := Chr(159); //Chr(108);
+  end;
+end;
+
+procedure InitForm_Labels_About;
+var
+  i: Integer;
+begin
+  SetLength(lblAbout, 6);
+  for i := 0 to High(lblAbout) do
+    lblAbout[i] := TLabel.Create(FrmDesign);
+
+  with lblAbout[0] do
+  begin
+    Parent := P.Pages[2];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 0);
+    Caption := 'Description';
+    Font.Style := [fsBold];
+  end;
+  with lblAbout[1] do
+  begin
+    Parent := P.Pages[2];
+    Left := LBL_PADDING_LEFT + INDENT_PADDING;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 1);
+    Caption := 'Fantastic Fletcher is a free public script developed and' +Chr(13)+
+               'maintained by "Press Play" (previously known as -daazndagger-)' +Chr(13)+
+               'at the SRL forums (villavu.com).' +Chr(13)+Chr(13)+
+               'It is the most comprehensive All-in-One (AIO) Fletcher. It supports' +Chr(13)+
+               'almost every type of stand-alone fletching mode. It also features' +Chr(13)+
+               'SC Knife support, anti-ban, multiplayer and much more!'  ;
+  end;
+  with lblAbout[2] do
+  begin
+    Parent := P.Pages[2];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 6);
+    Caption := 'News';
+    Font.Style := [fsBold];
+  end;
+  with lblAbout[3] do
+  begin
+    Parent := P.Pages[2];
+    Left := LBL_PADDING_LEFT + INDENT_PADDING;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 7);
+    Caption := '[??? MAR 2013]: Version 1.10 released! Added this setup form and' +Chr(13)+
+               'a fixed auto-updater/version checker!';
+  end;
+  with lblAbout[4] do
+  begin
+    Parent := P.Pages[2];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 9);
+    Caption := 'Advice';
+    Font.Style := [fsBold];
+  end;
+  with lblAbout[5] do
+  begin
+    Parent := P.Pages[2];
+    Left := LBL_PADDING_LEFT + INDENT_PADDING;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 10);
+    Caption := 'It is advised that you post progress reports/advice/constructive' +Chr(13)+
+               'critisism/screenshots (where necessary) to the thread so that I can' +Chr(13)+
+               'make the script as good/flawless/stable as possible.' +Chr(13)+Chr(13)+
+               'Remember to keep in mind this is a free script - so help me help you!' ;
+  end;
+end;
+
+procedure InitForm_Labels_Players;
+begin
+  lblHeadingCredentials := TLabel.Create(FrmDesign);
+  lblHeadingBankDetails := TLabel.Create(FrmDesign);
+  lblHeadingModeSetup := TLabel.Create(FrmDesign);
+  lblHeadingPlayerList := TLabel.Create(FrmDesign);
+
+  with lblHeadingCredentials do
+  begin
+    Parent := P.Pages[1];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 0);
+    Caption := 'PLAYER CREDENTIALS';
+    Font.Style := [fsBold, fsUnderline];
+  end;
+  with lblHeadingBankDetails do
+  begin
+    Parent := P.Pages[1];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 3);
+    Caption := 'BANK DETAILS';
+    Font.Style := [fsBold, fsUnderline];
+  end;
+  with lblHeadingModeSetup do
+  begin
+    Parent := P.Pages[1];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 8);
+    Caption := 'MODE SETUP';
+    Font.Style := [fsBold, fsUnderline];
+  end;
+  with lblHeadingPlayerList do
+  begin
+    Parent := P.Pages[1];
+    Left := 400;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 0);
+    Caption := 'PLAYER LIST';
+    Font.Style := [fsBold, fsUnderline];
+  end;
+
+  lblName := TLabel.Create(FrmDesign);
+  lblPass := TLabel.Create(FrmDesign);
+  lblPin := TLabel.Create(FrmDesign);
+  lblBankLoc := TLabel.Create(FrmDesign);
+  lblBankTab := TLabel.Create(FrmDesign);
+  lblBankSlot := TLabel.Create(FrmDesign);
+  lblPMode := TLabel.Create(FrmDesign);
+  lblPType := TLabel.Create(FrmDesign);
+  lblPBow := TLabel.Create(FrmDesign);
+  lblSCKnife := TLabel.Create(FrmDesign);
+
+  with lblName do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 1);
+    Caption := 'Username:';
+  end;
+  with lblPass do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 2);
+    Caption := 'Password:';
+  end;
+  with lblPin do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 4);
+    Caption := 'Bank Pin:';
+  end;
+  with lblBankLoc do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 5);
+    Caption := 'Bank Location:';
+  end;
+  with lblBankTab do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 6);
+    Caption := 'Bank tab:';
+  end;
+  with lblBankSlot do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 7);
+    Caption := 'Bank slot:';
+  end;
+  with lblPMode do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 9);
+    Caption := 'Fletching Mode:';
+  end;
+  with lblPType do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 10);
+    Caption := 'Wood/Metal type:';
+  end;
+  with lblPBow do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 11);
+    Caption := 'Bow type:';
+  end;
+  with lblSCKnife do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 12);
+    Caption := 'Using SC Knife:';
+  end;
+end;
+
+procedure InitForm_Labels_Globals;
+begin
+  lblWhenBreak := TLabel.Create(FrmDesign);
+  lblActAFK := TLabel.Create(FrmDesign);
+  lblAntiBan := TLabel.Create(FrmDesign);
+
+  with lblWhenBreak do
+  begin
+    Parent := P.Pages[0];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 0);
+    Caption := 'WhenBreak:';
+  end;
+  with lblActAFK do
+  begin
+    Parent := P.Pages[0];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 1);
+    Caption := 'ActAFK:';
+  end;
+  with lblAntiBan do
+  begin
+    Parent := P.Pages[0];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 2);
+    Caption := 'AntiBan:';
+  end;
+
+  lblWhenBreakDescription := TLabel.Create(FrmDesign);
+  lblActAFKDescription := TLabel.Create(FrmDesign);
+  lblAntiBanDescription := TLabel.Create(FrmDesign);
+
+  with lblWhenBreakDescription do
+  begin
+    Parent := P.Pages[0];
+    Left := DESCRIPTION_PADDING;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 0);
+    Caption := 'Time until break in minutes.';
+    Font.Style := [fsItalic];
+  end;
+  with lblActAFKDescription do
+  begin
+    Parent := P.Pages[0];
+    Left := DESCRIPTION_PADDING;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 1);
+    Caption := 'Will randomly go AFK like a real human if ''True''.';
+    Font.Style := [fsItalic];
+  end;
+  with lblAntiBanDescription do
+  begin
+    Parent := P.Pages[0];
+    Left := DESCRIPTION_PADDING;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 2);
+    Caption := 'How much anti-ban? 1=Always, 100=Somtimes.';
+    Font.Style := [fsItalic];
+  end;
+
+  lblSRLStatsUser := TLabel.Create(FrmDesign);
+  lblSRLStatsPass := TLabel.Create(FrmDesign);
+
+  with lblSRLStatsUser do
+  begin
+    Parent := P.Pages[0];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 4);
+    Caption := 'SRLStats_Username:';
+  end;
+  with lblSRLStatsPass do
+  begin
+    Parent := P.Pages[0];
+    Left := LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 5);
+    Caption := 'SRLStats_Password:';
+  end;
+end;
+
+procedure InitForm_Images;
+begin
+  ImageLine := TImage.Create(FrmDesign);
+  with ImageLine do
+  begin
+    Parent := P.Pages[0];
+    Left := 60;
+    Top := 2 + LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 3);
+    Width := 500;
+    Height := 15;
+  end;
+
+  ImageLine.Picture.Bitmap.LoadFromFile(ScriptPath+'FormBitmaps\Form_HorizonalBreakLine.bmp');
+end;
+
+procedure ChangePromo(Sender: TObject);
+begin
+  //Writeln('ChangePromo(); Initialised at '+IntToStr(GetTimeRunning)+'. IndexPromo = '+IntToStr(IndexPromo));
+  ImagePromo[IndexPromo].BringToFront;
+  Inc(IndexPromo);
+  if IndexPromo > High(ImagePromo) then
+    IndexPromo := 0;
+end;
+
+procedure InitForm_Banners;
+var
+  i: Integer;
+begin
+  ImageBanner := TImage.Create(FrmDesign);
+  with ImageBanner do
+  begin
+    Parent := FrmDesign;
+    Left := 25;
+    Top := 5;
+    Width := 640;
+    Height := 251;
+    Picture.Bitmap.LoadFromFile(ScriptPath+'FormBitmaps\Form_Banner.bmp');
+  end;
+
+  SetLength(ImagePromo, 3);
+  for i := 0 to High(ImagePromo) do
+  begin
+    ImagePromo[i] := TImage.Create(FrmDesign);
+    with ImagePromo[i] do
+    begin
+      Parent := P.Pages[0];
+      Left := 62;
+      Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 7);
+      Width := 519;
+      Height := 142;
+    end;
+  end;
+  for i := High(ImagePromo) downto 0 do
+    ImagePromo[i].Picture.Bitmap.LoadFromFile(ScriptPath+'FormBitmaps\Form_Promo_'+IntToStr(i)+'.bmp');
+
+  ImagePromo[0].BringToFront;
+
+  {$IFDEF PROMO_TIMER}
+  TimerPromo := TTimer.Create(FrmDesign);
+  with TimerPromo do
+  begin
+    Interval := 3000;
+    Enabled := True;
+    OnTimer := @ChangePromo;
+    Enabled := False;
+  end;
+  {$ENDIF}
+end;
+
+procedure InitForm_Tabs;
+begin
+   P := TPageControl.Create(FrmDesign);
+   with P do
+    begin
+      Parent := FrmDesign;
+      Left := 0;
+      Top := 260;
+      Width := 660;
+      Height := 450;
+    end;
+    TabGlobals := TTabSheet.Create(P);
+    with TabGlobals do
+    begin
+      Caption :='Global Settings';
+      Left := 0;
+      Top := 0;
+      Width := 650;
+      Height := 450;
+      Visible := true;
+      PageControl := P;
+    end;
+    TabPlayers := TTabSheet.Create(P);
+    with TabPlayers do
+    begin
+      Caption := 'Player Settings';
+      Left := 0;
+      Top := 0;
+      Width := 650;
+      Height := 450;
+      Visible := true;
+      PageControl:=P;
+    end;
+    TabPlayers := TTabSheet.Create(P);
+    with TabPlayers do
+    begin
+      Caption := 'About';
+      Left := 0;
+      Top := 0;
+      Width := 650;
+      Height := 450;
+      Visible := true;
+      PageControl:=P;
+    end;
+
+    P.ActivePage := P.Pages[0];
+    //P.ActivePage := P.Pages[1];
+    //P.ActivePage := P.Pages[2];
+end;
+
+var
+  btnLoading,
+  btnEnter,
+  lblLoading: TButton;
+  TimerLoading,
+  TimerShow: TTimer;
+
+  LoadingCharIndex: Integer;
+  LoadingChar: Array[0..3] of Char;
+
+procedure SetupLoadingChars;
+begin
+  LoadingChar[0] := Char('L');
+  LoadingChar[1] := Char('N');
+  LoadingChar[2] := Char('M');
+  LoadingChar[3] := Char('O');
+end;
+
+procedure LoadingSequence(Sender: TObject);
+begin
+  //Writeln('LoadingSequence(); LoadingCharIndex = '+IntToStr(LoadingCharIndex));
+  btnLoading.Caption := LoadingChar[LoadingCharIndex];
+  if LoadingCharIndex = 3 then
+    LoadingCharIndex := 0
+  else
+    Inc(LoadingCharIndex);
+end;
+
+procedure ToggleWhiteCover(Sender: TObject);
+begin
+  case Sender of
+    lblLoading:
+      begin
+        FrmDesign.Enabled := False;
+        btnPressPlay.Visible := True;
+        btnSave.Visible := True;
+        btnLoad.Visible := True;
+        btnAddPlayer.Visible := True;
+
+        repeat
+          btnLoading.Top := btnLoading.Top + 5;
+          lblLoading.Top := lblLoading.Top + 5;
+          FrmDesign.Refresh;
+        until(btnLoading.Top = 700)
+        btnLoading.Visible := False;
+        lblLoading.Visible := False;
+        FrmDesign.Enabled := True;
+        TimerPromo.Enabled := True;
+      end;
+    TimerShow:
+      begin
+        lblLoading.Enabled := True;
+        lblLoading.Caption := 'Start!';
+        btnLoading.Font.Name := 'Wingdings';
+        btnLoading.Caption := Char('B');
+        TimerLoading.Enabled := False;
+        TimerShow.Enabled := False;
+      end;
+  end;
+end;
+
+procedure InitForm_Loading;
+begin
+  TimerLoading := TTimer.Create(FrmDesign);
+  TimerShow := TTimer.Create(FrmDesign);
+  TimerDrawPromo := TTimer.Create(FrmDesign);
+  btnLoading := TButton.Create(FrmDesign);
+  btnEnter := TButton.Create(FrmDesign);
+  lblLoading := TButton.Create(FrmDesign);
+
+  with TimerLoading do
+  begin
+    Interval := 500;
+    Enabled := True;
+    OnTimer := @LoadingSequence;
+  end;
+  with TimerShow do
+  begin
+    Interval := 8000;
+    Enabled := True;
+    OnTimer := @ToggleWhiteCover;
+  end;
+  with TimerDrawPromo do
+  begin
+    Interval := 100;
+    Enabled := True;
+    OnTimer := @DrawFormPromo;
+  end;
+
+  SetupLoadingChars;
+  with btnLoading do
+  begin
+    Parent := FrmDesign;
+    Left := -10;
+    Top := 260;
+    Width := 700;
+    Height := 470;
+    LoadingCharIndex := 0;
+    Caption := LoadingChar[LoadingCharIndex];
+    Font.Name := 'Wingdings 3';
+    Font.Size := 50;
+    Font.Style := [fsBold];
+    btnLoading.Enabled := False
+    BringToFront;
+  end;
+  with lblLoading do
+  begin
+    Parent := FrmDesign;
+    Left := 240;
+    Top := 400;
+    Width := 200;
+    Height := 50;
+    Caption := 'Loading...';
+    Font.Size := 15;
+    Font.Style := [fsBold];
+    BringToFront;
+    Enabled := False;
+    OnClick := @ToggleWhiteCover;
+  end;
+
+  btnPressPlay.Visible := False;
+  btnSave.Visible := False;
+  btnLoad.Visible := False;
+  btnAddPlayer.Visible := False;
+end;
+
+procedure InitForm_Sub;
+begin
+  InitForm_Tabs;
+  InitForm_Banners;
+  InitForm_Images;
+  InitForm_Labels_Globals;
+  InitForm_Labels_Players;
+  InitForm_Labels_About;
+  InitForm_Textboxes_Globals;
+  InitForm_Textboxes_Players;
+  InitForm_DropdownBoxes_Globals;
+  InitForm_DropdownBoxes_Players;
+  ResetGlobalsForm;
+  ResetPlayerForm;
+  InitForm_PlayerList;
+  InitForm_Buttons;
+end;
+
+procedure InitForm_Main;
+begin
+  FrmDesign := TForm.Create(nil);
+  with FrmDesign do
+  begin
+    Left := 200;
+    Top := 200;
+    Width := 650;
+    Height := 700;
+    Caption := '[F]antastic [F]letcher - Player(s) Setup Form'; // Rename to whatever you want
+    Color := ClWhite;
+    Font.Name := FONT_NAME;
+    Font.Color := FONT_COLOR;
+    Font.Size := FONT_SIZE;
+  end;
+  FormSetupComplete := False;
+
+  InitForm_Sub;
+  InitForm_Loading;
+end;
+
+procedure SafeInitForm;
+var
+  v: TVariantArray;
+begin
+  SetArrayLength(V, 0);
+  ThreadSafeCall('InitForm_Main', v);
+end;
+
+procedure ShowFormModal;
+begin
+  FrmDesign.ShowModal;
+end;
+
+procedure SafeShowFormModal;
+var
+  v: TVariantArray;
+begin
+  setarraylength(V, 0);
+  ThreadSafeCall('ShowFormModal', v);
+end;
+
+procedure ShowPlayerForm;
+begin
+  DeclareIndexes;
+  SafeInitForm;
+  SafeShowFormModal;
+
+  {$IFDEF PROMO_TIMER}TimerPromo.Enabled := False;{$ENDIF}
+end;

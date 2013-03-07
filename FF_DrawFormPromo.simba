@@ -1,0 +1,94 @@
+//============================================================================//
+//   FF_DRAWFORMPROMO.simba
+//----------------------------------------------------------------------------//
+
+var
+  t: LongInt;
+  bmpPromo: TIntegerArray;
+
+  TimerDrawPromo: TTimer;
+
+procedure SetupPromoBankground;
+var
+  i: Integer;
+begin
+  MarkTime(t);
+  SetLength(bmpPromo, 3);
+  for i := 0 to High(bmpPromo) do
+    bmpPromo[i] := LoadBitmap(ScriptPath+'FormBitmaps\Form_Promo_Template.bmp');
+end;
+
+procedure FastSetPixelSafe(bmp, x, y, color: LongInt);
+var
+  sx, sy: Integer;
+begin
+  GetBitmapSize(bmp, sx, sy);
+  if PointInBox(Point(x, y), IntToBox(0, 0, sx, sy)) then
+    FastSetPixel(bmp, x, y, color);
+end;
+
+procedure DrawTextPromo(s, chars: String; col, left, top, index: Integer);
+var
+  h, i: Integer;
+  TextTPA: TPointArray;
+begin
+  TextTPA := LoadTextTPA(s, chars, h);
+  for i := 0 to High(TextTPA) do
+    FastSetPixelSafe(bmpPromo[index], TextTPA[i].x+left, TextTPA[i].y+top, col);
+end;
+
+procedure SavePromoBitmap;
+var
+  i: Integer;
+begin
+  for i := 0 to High(bmpPromo) do
+  begin
+    SaveBitmap(bmpPromo[i], ScriptPath+'FormBitmaps\Form_Promo_'+IntToStr(i)+'.bmp');
+    FreeBitmap(bmpPromo[i]);
+  end;
+  Debug('Promo banners drawn in '+IntToStr(TimeFromMark(t))+' ms.', 1);
+end;
+
+function GetGEUMSPrice: String;
+begin
+  Result := GetPage('http://services.runescape.com/m=itemdb_rs/viewitem.ws?obj=62');
+  Result := Between('<td>', '</td>', Between('Current guide price:</th>', '</tr>', Result));
+  Debug('G.E. Maple shieldbows(u): '+Result+' gp.', 1);
+end;
+
+procedure DrawTableLine(bmp: Integer; start, finish: TPoint; color: Integer);
+var
+  LineTPA: TPointArray;
+  i: Integer;
+begin
+  LineTPA := tmp_TPAFromLine(start.x, start.y, finish.x, finish.y);
+  for i := 0 to High(LineTPA) do
+    FastSetPixelSafe(bmp, LineTPA[i].x, LineTPA[i].y, color);
+end;
+
+procedure DrawFormPromo(Sender: TObject);
+begin
+  TimerDrawPromo.Enabled := False;
+  SetupPromoBankground;
+
+  { Image 1 }
+  DrawTextPromo('Sell me your Maple shieldbows(u)', BigChars, clBlack, 40, 20, 0);
+  DrawTextPromo('for up to 95gp ea!', BigChars, clBlack, 135, 55 ,0);
+  DrawTextPromo('[ Press Play ]', statChars, clBlue, 225, 100, 0);
+
+  { Image 2 }
+  DrawTextPromo('Current G.E. Price: '+GetGEUMSPrice+' gp', BigChars, clBlack, 90, 40 ,1);
+  DrawTextPromo('[ Press Play ]', statChars, clBlue, 225, 100, 1);
+
+  { Image 3 }
+  DrawTextPromo('Quantity     Price Each', smallChars, clBlack, 200, 12, 2);
+  DrawTableLine(bmpPromo[2], Point(190, 26), Point(330, 26), clBlack);
+  DrawTableLine(bmpPromo[2], Point(257, 12), Point(257, 95), clBlack);
+  DrawTextPromo('    100K              92gp', statChars, clBlack, 200, 17+(15*1), 2);
+  DrawTextPromo('    250K              93gp', statChars, clBlack, 200, 17+(15*2), 2);
+  DrawTextPromo('    500K              94gp', statChars, clBlack, 200, 17+(15*3), 2);
+  DrawTextPromo('      1M                95gp', statChars, clBlack, 200, 17+(15*4), 2);
+  DrawTextPromo('[ Press Play ]', statChars, clBlue, 225, 100, 2);
+
+  SavePromoBitmap;
+end;

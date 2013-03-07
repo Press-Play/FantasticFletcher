@@ -1,0 +1,1435 @@
+program FantasticFletcher;
+{$DEFINE SMART8}
+{$I SRL-OSR/SRL.simba}
+{$I SRL-OSR/SRL/Misc/SmartGraphics.simba}
+
+{==============================================================================]
+[                   Press Play's [F]antastic [F]letcher                        ]
+[                       [OSR - Old School Runescape]                           ]
+[==============================================================================]
+[                                 [Simba]                                      ]
+[                                [SRL-OSR]                                     ]
+[                                 [SMART]                                      ]
+[------------------------------------------------------------------------------]
+[   Description:    |                                                          ]
+[-------------------.                                                          ]
+[   - This script is built upon the base of my original Fantastic Fletcher     ]
+[     version 0.70BETA (pre-EoC); quite a solid base.                          ]
+[------------------------------------------------------------------------------]
+[   Features/Log:   |                                                          ]
+[-------------------.                                                          ]
+[  ## Version 0.10 ():                                            ]
+[    - Initial release! (SRL Mems+ only).                                      ]
+[------------------------------------------------------------------------------]
+[   Instructions:   |                                                          ]
+[-------------------.                                                          ]
+[   1. Setup varibles as required, see thread for detailed instructions.       ]
+[   2. Your knife goes in the last inventory slot. The script does not check   ]
+[      for it, it assumes that it is there!                                    ]
+[   3. Make sure the logs/unstrung bows/bow strings are in the correct and     ]
+[      corresponding bank slot and tab!                                        ]
+[   4. You must be standing right next to the bank chest at either Castle Wars ]
+[      or Soul Wars!                                                           ]
+[   5. Press Play                                                              ]
+[------------------------------------------------------------------------------}
+
+var                                                  //<<<<<<<<//
+  x, y: Integer;                                               //
+  WhenBreak, AntiBanAmount: Integer;                           //
+  extraDebug, ActAFK: Boolean;                                 // DO
+  SRLStats_Username, SRLStats_Password: String;                // NOT
+                                                               // TOUCH
+const                                                          //
+{ *** For Players}                                             //
+  P_BANK_SLOT = 0;                                             //
+  P_BANK_TAB  = 1;                                             // DO
+  P_MODE      = 2;                                             // NOT
+  P_TYPE      = 3;                                             // TOUCH
+  P_BOW       = 4;                                             //
+  P_BANK_LOC  = 5;                                             //
+  P_SCKNIFE   = 6;                                             //
+                                                               // DO
+{ *** For Modes}                                               // NOT
+  MODE_CUT               = 1;                                  // TOUCH
+  MODE_STRING            = 2;                                  //
+  MODE_SHAFTS            = 3;                                  //
+  MODE_SHAFT_TO_HEADLESS = 4;                                  //
+  MODE_HEADLESS_TO_ARROW = 5;                                  //
+  MODE_SHAFT_TO_ARROW    = 6;                                  //
+  MODE_LOG_TO_ARROW      = 7;                        //<<<<<<<<//
+
+{------------------------------------------------------------------------------]
+[  VARIBLE SETUP:                                                              ]
+[     See the thread for details.                                              ]
+[------------------------------------------------------------------------------}
+procedure LoadGlobals;
+begin
+  WhenBreak     := 180;             // Minutes until break
+  ActAFK        := True;            // Do you randomly want to go AFK?
+  extraDebug    := False;           // Displays extra information about the bot
+  AntiBanAmount := 40;              // How much anti-ban? [1=Always, 10=Sometimes]
+  SRLStats_Username := '';        // Stats Username
+  SRLStats_Password := '';        // Stats Password
+end;
+
+{------------------------------------------------------------------------------]
+[  DECLARE PLAYERS:                                                            ]
+[     Change accordingly.                                                      ]
+[------------------------------------------------------------------------------}
+procedure DeclarePlayers;
+begin
+  HowManyPlayers := 1;
+  NumberOfPlayers(HowManyPlayers);
+  CurrentPlayer := 0;
+
+  with Players[0] do
+  begin
+    Name        :='';        // Username
+    Pass        :='';        // Password
+    Nick        :='';        // 3-4 lower case letters of your character's name
+    Pin         :='';        // Bank PIN
+    Integers[P_BANK_SLOT] := 1;         // Bank Slot of Logs/Unstrung Bows. Bow Strings go in the next slot!
+    //Integers[P_BANK_TAB]  := 1;         // Bank Tab which all of these are located
+    Integers[P_MODE]      := MODE_CUT;  // Cuttng Bows, Stringing Bows, or Fletching Arrows? (See thread)
+    Strings[P_TYPE]       := 'normal';   // What log/bow type? ['Normal', 'Oak', 'Willow' etc..]
+                                           // OR What arrow type? ['Bronze', 'Iron', 'Steel' etc...]
+    Strings[P_BOW]        := 'long';    // Longbow or Shortbow? ['long', 'short']
+    Strings[P_BANK_LOC]   := 'sw';      // What bank? ['sw', 'cw']
+    Booleans[P_SCKNIFE]   := false;     // Using SC Knife? [Yes = true]
+    Member      := true;
+    Active      := true;
+  end;
+end;
+
+{------------------------------------------------------------------------------}
+{                STOP STOP   STOP STOP   STOP-STOP    STOP STOP                }
+{                STOP           STOP     STOP STOP    STOP    |                }
+{      =====     STOP STOP      STOP     STOP STOP    STOP STOP     =====      }
+{                     STOP      STOP     STOP STOP    STOP                     }
+{                STOP STOP      STOP     STOP-STOP    STOP                     }
+{------------------------------------------------------------------------------}
+
+const
+  ScriptVersion = '0.10';
+  ScriptName    = '[F]antastic [F]letcher [OSR]';
+
+{ ~~ The following options are not recommended to change
+     unless you have a well rounded scripting ability ~~ }
+
+  LaggFactor   = 1;      // [1 = no lagg, 10 = HOLY S**T] //change back to 3!!!
+  VerOveride   = True;  // Disables the version check
+  DisablePaint = True;  // Used to debug, but without painting items
+  TestTPABank  = True;  // Used to test TPA Method bank finding
+
+{ *** For Location}
+  LOC_CASTLEW   = 1;
+  LOC_SOULW     = 2;
+  LOC_BURTHROPE = 3;
+
+var
+  optionUpText: String;
+  TotalTimeInactive, RoundTime, lTimer: Integer;  // Time
+  XP_Gain: Extended;
+  wCol, wRow, wCol2, wRow2, wAmount, wCount: Integer;
+  XP_SCKnife, WhichBank: Integer;
+
+type
+  Totals = record
+    XP: Extended;
+    Cut, Strung, LevelUps: Integer;
+  end;
+
+type
+  ItemProperties = record
+    Name: String;
+    Colour: Integer;
+    TPALength: Integer;  // Outline
+    Midpoint: TPoint;
+  end;
+type
+  TObjectProperties = record
+    TPA: TPointArray;
+    ATPA: array of TPointArray;
+  end;
+
+var
+  Total: Totals;
+  PlayerTotal: array of Totals;
+  Log, uBow, bString: ItemProperties;
+  BankChest: TObjectProperties;
+
+procedure Debug(w: string);
+begin
+  if extraDebug then
+  begin
+    Writeln(w);
+  end else
+    Status(w);
+end;
+
+procedure Paint(TPA: TPointArray);
+begin
+  if DisablePaint then Exit;
+  {$IFDEF SMART}
+  if extraDebug then
+    SMART_DrawDotsEx(true, TPA, 255);
+  {$ENDIF}
+end;
+
+function OverTime(theTime: Integer): Boolean;
+begin
+  if TimeFromMark(theTime) > LaggFactor*10*1000 then
+    Result := True;
+end;
+
+procedure DoAntiBan;
+var
+  r: Integer;
+begin;
+  if not (LoggedIn) then Exit;
+  Debug('Performing Anti-Ban procedure...');
+  r:= Random(100);
+  case r of
+    10, 15: HoverSkill('fletching', false);
+    20, 25: RandomMovement;
+    //30, 40: RandomAngle(SRL_ANGLE_HIGH);
+    50: PickUpMouse;
+    60: RandomRClick;
+    70: ExamineInv;
+    80: BoredHuman;
+  end;
+
+  case r of
+    10, 15, 20, 25, 30, 40, 50, 60, 70:
+      begin
+        Wait(RandomRange(250, 1000));
+        GameTab(Tab_Inv);
+      end;
+  end;
+end;
+
+function FindItemTPA(var Item: ItemProperties; Bounds: TBox; Update: Boolean): Boolean;
+var
+  ItemTPA: TPointArray;  // TPA stored in this
+  M: TPoint;             // For the middle point of Item
+  B: TBox;               // Item bounds
+  i: Integer;
+begin
+  B := Bounds;
+  MarkTime(lTimer);
+  for i:=1 to 10 do
+  begin
+    FindColorsTolerance(ItemTPA, srl_outline_black, B.x1, B.y1, B.x2, B.y2, 0);
+    if (Length(ItemTPA) < 1) and ((Players[CurrentPlayer].Integers[P_MODE] = MODE_CUT)) then
+    begin
+      Debug('ATTENTION: Length(ItemTPA) was less than 1; something must have gone wrong!! ' +IntToStr(i));
+    end else
+      Break;
+    Wait(RandomRange(100, 200));
+    if OverTime(lTimer) then
+      Break;
+  end;
+
+  if (Length(ItemTPA) < 1) and ((Players[CurrentPlayer].Integers[P_MODE] = MODE_CUT)) then
+  begin
+    Debug('ATTENTION: Length(ItemTPA) was less than 1; something must have gone wrong!! Last');
+    Result := False;
+    Exit;
+  end;
+
+  B := GetTPABounds(ItemTPA);
+  M := MiddleTPA(ItemTPA);
+
+  Paint(ItemTPA);
+
+  if Update then
+  begin
+    Item.TPALength := Length(ItemTPA);
+    Debug('Length of: ' +Item.Name+' = '+IntToStr(Item.TPALength));
+    Item.Colour := GetColor(M.x, M.y);
+    Item.Midpoint := M;
+    Debug(Item.Name+'''s properties were set...');
+    Result := true;
+    Exit;
+  end;
+
+  Status('Length of inventory item = '+IntToStr(Length(ItemTPA)));
+  if (Length(ItemTPA) = Item.TPALength) then      // Need to fix this.. colour at midpoint is dodgey with bows and bowstrings
+    Result:= True;
+    if Item.Colour > -1 then
+      Result := GetColor(M.x, M.y) = Item.Colour
+    else
+      Result := True;
+end;
+
+function CountItemsInv(Item :ItemProperties): Integer;
+var
+  i, count: Integer;
+begin
+  count:= 0;
+  for i:=1 to 28 do
+  begin
+    if FindItemTPA(Item, InvBox(i), False) then
+    begin
+      Inc(count);
+      //Status(IntToStr(count)+Item.Name+'s to go...');
+    end;
+  end;
+
+  Debug(IntToStr(count)+' '+Item.Name+'s to go...');
+  Result:= count;
+end;
+
+function FindColorBox(var x, y: Integer; color: Integer; b: TBox): Boolean;
+begin
+  Result:= FindColor(x, y, color, b.X1, b.Y1, b.X2, b.Y2);
+end;
+
+{function FindLoc(l: Integer): Boolean;
+begin
+  if not LoggedIn then
+    Exit;
+
+  SymbolAccuracy := 0.7;
+  repeat
+    if (FindSymbol(x, y, 'bank')) and (FindSymbol(x, y, 'minigame'))then
+    begin
+      Result := True;
+      Break;
+    end else
+    begin
+      SymbolAccuracy := SymbolAccuracy - 0.1;
+      Debug('You are not in the correct location...');
+      Debug('SymbolAccuracy := ' +FloatToStr(SymbolAccuracy));
+    end;
+  until(SymbolAccuracy = 0.1);
+
+  SymbolAccuracy := 0.6;
+  if FindSymbol(x, y, 'quest') then
+  begin
+    Debug('You are at Soulwars bank chest...');
+    l := LOC_SOULW;
+  end else
+  begin
+    Debug('You are at Castlewars bank chest...');
+    l := LOC_CASTLEW;
+  end;
+
+  Result:= True;
+end;  }
+
+function FindBankChest(var x, y: Integer): Boolean;
+var
+  CTS, i, h: Integer;
+  P: TPoint;
+begin
+  //  SetAngle(SRL_ANGLE_HIGH);
+  case WhichBank of
+    LOC_SOULW: MakeCompass('W');
+    LOC_CASTLEW, LOC_BURTHROPE: MakeCompass('N');
+  end;
+  if not TestTPABank then
+  begin
+    Debug('Method1: Blind...');
+    MouseBox(290, 160, 314, 187, 3);
+    for i:=0 to 10 do
+    begin
+      if ( WaitUpTextMulti(['ank', 'chest'], 200) ) then
+      begin
+        Debug('Found bank using blind check!');
+        Result:= True;
+        GetMousePos(x, y);
+        Exit;
+      end;
+    end;
+  end;
+
+  Debug('Method2: TPA...');
+  CTS := GetColorToleranceSpeed;
+  ColorToleranceSpeed(2);
+  SetColorSpeed2Modifiers(0.08, 0.25);
+
+  FindColorsSpiralTolerance(MSCX, MSCY, BankChest.TPA, 10198185, MSX1, MSY1, MSX2, MSY2, 21);
+  ColorToleranceSpeed(CTS);
+
+  BankChest.ATPA := SplitTPA(BankChest.TPA, 10);
+  SortATPAFrom(BankChest.ATPA, Point(MSCX, MSCY));
+
+  if ( Length(BankChest.ATPA)=0 ) then
+  begin
+    Debug('Bank chest not found.');
+    Result:= false;
+  end else
+    Debug('Found ' +IntToStr(Length(BankChest.ATPA))+ ' possible Bank chests?');
+
+  h:= High(BankChest.ATPA);
+  {
+  for i := 0 to h do
+  begin
+    Paint(BankChest.ATPA[i]);
+    SMART_DrawBoxEx(false, GetTPABounds(BankChest.TPA), clGreen);
+    Wait(1000);
+  end;
+  Wait(10000);   }   //for debugginng
+
+  for i := 0 to h do
+  begin
+    if Length(BankChest.ATPA[i])>20 then
+    begin
+      Paint(BankChest.ATPA[i]);
+      P := MiddleBox(GetTPABounds(BankChest.ATPA[i]));
+      //SMART_DrawBoxEx(false, GetTPABounds(BankChest.ATPA[i]), clGreen);
+      MMouse(P.x, P.y, 3, 3);
+      if ( WaitUpTextMulti(['ank', 'chest'], 200) ) then
+      begin
+        Result:= True;
+        GetMousePos(x, y);
+        Break;
+      end else
+        Result:= false;
+
+      if BankScreen or PinScreen then
+      begin
+        Debug('Bank is open...');
+        Result := True;
+        Exit;
+      end;
+    end;
+  end;
+end;
+
+function OpenBankChestMine: Boolean;
+var
+  i: Integer;
+begin
+  if BankScreen then
+  begin
+    Debug('Bank is already open...');
+    Result := True;
+    Exit;
+  end;
+
+  for i:=0 to 10 do
+  begin
+    if BankScreen or PinScreen then
+      Break;
+    Debug('Searching for bank...');
+    if FindBankChest(x, y) then
+    begin
+      Debug('Found bank...');
+      //MMouse(x, y, 3, 3);
+      //if IsUpText('ank') then
+      if ( WaitUpTextMulti(['ank', 'chest'], 200) ) then
+      begin
+        GetMousePos(x, y);
+        Case random(8) of
+          0..6 : Mouse(x, y, 0, 0, true);
+          7 : begin
+                Mouse(x, y, 0, 0, False);
+                if not ChooseOption('ank') then
+                  Break;
+              end;
+        end;
+        Debug('Clicked bank...');
+        Wait(RandomRange(200,400));
+        MarkTime(lTimer);
+        repeat
+          if BankScreen or PinScreen then
+            Break;
+          if OverTime(lTimer) then
+          begin
+            if i >=10 then
+            begin
+              Debug('Clicked bank but may have missed (' +IntToStr(i)+ ' times)...');
+              Result := False;
+              Exit;
+            end else
+              Break;
+          end;
+        until(false)
+      end else
+      begin
+        if BankScreen or PinScreen then
+            Break;
+        Debug('Missed bank, re-searching');
+      end;
+    end else
+    begin
+      Debug('Can''t find bank ' +IntToStr(i)+ ' times...');
+    end;
+  end;
+
+  Wait(200+Random(150*LaggFactor));
+  if PinScreen then
+    InPin(Players[CurrentPlayer].Pin);
+
+  Debug('Opened bank...')
+  Result := True;
+end;
+
+function DepositProducts: Boolean;
+begin
+  if not LoggedIn then Exit;
+
+  if OpenBankChestMine then
+    if InvCount>0 then
+      if not Players[CurrentPlayer].Booleans[P_SCKNIFE] then
+      begin
+        DepositAll;
+      end else
+        Deposit(2, 28, true);
+
+  Result := True;
+end;
+
+function WithdrawReactants: Boolean;
+var
+  b: TPoint;
+  q, p, i: Integer;
+  f: TBox;
+begin
+  if not LoggedIn then Exit;
+
+  b := BankIndexToMSPoint(Players[CurrentPlayer].Integers[P_BANK_SLOT]);
+  if OpenBankChestMine then
+  begin
+    if InvCount>0 then
+      DepositProducts;
+
+    Wait(200+Random(150*LaggFactor));
+    FixBank;
+
+    while not FindColorBox(x, y, srl_outline_black, BankIndexToMSBox(Players[CurrentPlayer].Integers[P_BANK_SLOT])) do
+    begin
+      Wait(200+Random(150*LaggFactor));
+    end;
+
+    if GetAmountBox(BankIndexToMSBox(Players[CurrentPlayer].Integers[P_BANK_SLOT])) <= (wCount) then
+    begin
+      Writeln('Out of stuff to fletch! (1)');
+      Players[CurrentPlayer].Loc:= 'Used up all items';
+      Result:= True;
+      Exit;
+    end;
+    for i:=1 to 5 do
+    begin
+      if Withdraw(wCol, wRow, wAmount) then
+        Break;
+      if i>=5 then
+      begin
+        Writeln('Could not withdraw! '+IntToStr(i));
+        Exit;
+      end;
+    end;
+
+    f := InvBox(2);
+    MarkTime(lTimer)
+    repeat
+      Wait(RandomRange(100, 200));
+      if OverTime(lTimer) then
+        Break;
+    until(FindColor(q, p, srl_outline_black, f.x1, f.y1, f.x2, f.y2) or InvFull)
+    Wait(500+Random(100*laggfactor));
+    Case Players[CurrentPlayer].Integers[P_MODE] of
+      MODE_CUT, MODE_SHAFTS : begin
+                   if FindItemTPA(Log, f, True) then
+                     Writeln('Updated item!!!');
+                 end;
+      MODE_STRING : begin
+                   if FindItemTPA(uBow, f, True) then
+                     Writeln('Updated item!!!');
+                 end;
+    end;
+
+
+    while not FindColorBox(x, y, srl_outline_black, BankIndexToMSBox(Players[CurrentPlayer].Integers[P_BANK_SLOT])) do
+    begin
+      Wait(200+Random(150*LaggFactor));
+    end;
+
+    if Players[CurrentPlayer].Integers[P_MODE] = MODE_STRING then
+    begin
+      if GetAmountBox(BankIndexToMSBox(Players[CurrentPlayer].Integers[P_BANK_SLOT] + 1)) <= (wCount) then
+      begin
+        Writeln('Out of stuff to fletch! (2)');
+        Players[CurrentPlayer].Loc:= 'Used up all items';
+        Result:= True;
+        Exit;
+      end;
+      for i:=1 to 5 do
+      begin
+        if Withdraw(wCol2, wRow2, wAmount) then
+          Break;
+        if i>=5 then
+        begin
+          Writeln('Could not withdraw! '+IntToStr(i));
+          Exit;
+        end;
+      end;
+      f := InvBox(28);
+      MarkTime(lTimer)
+      repeat
+        Wait(RandomRange(100, 200));
+        if OverTime(lTimer) then
+          Break;
+      until(FindColor(q, p, srl_outline_black, f.x1, f.y1, f.x2, f.y2) or InvFull)
+      Wait(500+Random(100*laggfactor));
+
+      if FindItemTPA(bString, InvBox(28), True) then
+        Writeln('Updated item!!!');
+    end;
+
+    Debug('Successfully withdrawn items...');
+    CloseBank;
+    Debug('Closing Bank...');
+    Result:= True;
+  end else
+    Exit;
+end;
+
+function FindSelection(var CP: TPoint; text: String): Boolean;
+begin
+   // Modified from Narcle's script:
+    if FindTextTpaEx(2070783, 0, MCX1, MCY1, MCX2, MCY2, CP.x, CP.y, text, statchars07, Nothing) then
+    begin
+      Wait(RandomRange(150, 350));
+      Result := True;
+      Exit;
+    end;
+end;
+
+function ClickSelection(text: String): Boolean;
+var
+  CP: TPoint;
+begin
+  Debug('Searching for ''' +text+ ''' option...');
+  MarkTime(lTimer);
+  repeat
+    if FindSelection(CP, text) then
+    begin
+      MouseBox(CP.x-20, CP.y-30, CP.x+20, CP.y+8, 1);
+      Debug('Clicked ''' +text+ '''...');
+      Result := True;
+      Break;
+    end;
+    if OverTime(lTimer) then
+    begin
+      Debug('Could not find ''' +text+ '''');
+      Exit;
+    end;
+  until(false)
+end;
+
+function ClickItem(upTextArray: Array of String; itemBox: TBox): Boolean;
+var
+  i, t: Integer;
+  B: TBox;
+begin
+  B := itemBox;
+  for i:=1 to 5 do
+  begin
+    MouseBox(B.x1, B.y1, B.x2, B.y2, 3);
+    MarkTime(lTimer);
+    repeat
+      Wait(RandomRange(200, 400));
+      if IsUpTextMultiCustom(upTextArray)  then
+      begin
+        Debug('Found: ''' +optionUpText+ ''', clicking...');
+        GetMousePos(x, y);
+        Mouse(x, y, 0, 0, true);
+        Result := True;
+        Exit;
+      end;
+      if OverTime(lTimer) then
+      begin
+        Debug('Could not find ''' +optionUpText+ ''' '+IntToStr(i)+' times');
+        Break;
+      end;
+    until(false)
+  end;
+  MouseBox(B.x1, B.y1, B.x2, B.y2, 1);
+  Result := true;                         // This is a new added part meaning the function will always return true!
+end;                                      // MIGHT AS WELL CHANGE IT JUST TO CLICKITEM ANYWAY!
+
+function FletchReaction: Boolean;
+var
+  B: TBox;
+  r, rr, t, i: Integer;
+  T1, T2: TPoint;
+begin
+  if not LoggedIn then Exit;
+
+  Debug('Fletching...');
+  GameTab(Tab_Inv);
+  MarkTime(t);
+  repeat
+    Wait(100+random(100))
+  until(InvFull or (TimeFromMark(t) > 5000))
+
+
+  if Players[CurrentPlayer].Booleans[P_SCKNIFE] then
+  begin
+    r := Random(12)+2;
+  end else
+    r := Random(13)+1;
+
+  Debug('Random Inventory slot choosen: ' +IntToStr(r));
+
+  case Players[CurrentPlayer].Integers[P_MODE] of        // Important failsafe for Leveling up
+    MODE_CUT: begin
+            if CountItemsInv(Log) < 28 then
+            begin
+              if CountItemsInv(Log) = 0 then
+                Exit;
+              r := 28;
+              Debug('Inventory slot overidden (MODE_CUT - log); B := InvBox(28)');
+            end;
+          end;
+    MODE_STRING: begin
+             if CountItemsInv(bString) < 14 then
+             begin
+               if CountItemsInv(bString) = 0 then
+                 Exit;
+               MarkTime(lTimer)
+               repeat
+               rr := Random(26)+2;
+               if FindItemTPA(uBow, InvBox(rr), false) then
+               begin
+                 r := rr;
+                 Debug('Inventory slot overidden (MODE_STRING - uBow); B := ' +IntToStr(rr));
+                 Break;
+               end;
+               until(OverTime(lTimer))
+             end;
+
+           end;
+    MODE_SHAFTS: begin
+             if not InvFull then
+             begin
+               MarkTime(lTimer)
+               repeat
+               rr := Random(26)+2;
+               if FindItemTPA(log, InvBox(rr), false) then
+               begin
+                 if CountItemsInv(Log) = 0 then
+                   Exit;
+                 r := rr;
+                 Debug('Inventory slot overidden (MODE_SHAFTS - log); B := ' +IntToStr(rr));
+                 Break;
+               end;
+               until(OverTime(lTimer))
+             end;
+           end;
+  end;
+  B := InvBox(r)
+
+  if not ClickItem([optionUpText, Capitalize(Players[CurrentPlayer].Strings[P_TYPE])], B) then
+    Exit;              //optionUpText = ['Craft', 'Use']
+
+  if Players[CurrentPlayer].Integers[P_MODE] = MODE_STRING then
+  begin
+    if Players[CurrentPlayer].Booleans[P_SCKNIFE] then
+    begin
+      r := Random(12)+16;
+    end else
+      r := Random(13)+15;
+
+    if CountItemsInv(bString) <> 14 then
+    begin
+      MarkTime(lTimer)
+      repeat
+      rr := Random(27)+1
+      if FindItemTPA(bString, InvBox(rr), false) then
+      begin
+        r := rr;
+        Debug('Inventory slot overidden (MODE_STRING - string); B := ' +IntToStr(rr));
+        Break;
+      end;
+      until(OverTime(lTimer))
+    end;
+
+    Debug('Random Inventory slot choosen: ' +IntToStr(r));
+    B := InvBox(r)
+    if not ClickItem([optionUpText, 'bow'], B) then
+      Exit;                            //optionUpText = ['Use']
+  end;
+
+  if (Players[CurrentPlayer].Integers[P_MODE] = MODE_CUT)
+  or (Players[CurrentPlayer].Integers[P_MODE] = MODE_SHAFTS) then
+  begin
+    MarkTime(lTimer)
+    repeat
+      if FindSelection(T1, 'bow') then
+      begin
+        Debug('''Knife'' option surpassed...');
+        Break;
+      end;
+      if FindSelection(T1, 'nife') then
+      begin
+        ClickSelection('nife');
+        Break;
+      end;
+      if OverTime(lTimer) then
+        Exit;
+    until(false)
+
+    Case Players[CurrentPlayer].Integers[P_MODE] of
+      MODE_CUT: begin
+                  if Capitalize(Players[CurrentPlayer].Strings[P_TYPE]) = 'Normal' then
+                  begin
+                    if not ClickSelection(Capitalize(Players[CurrentPlayer].Strings[P_BOW])) then
+                      Exit;
+                  end else
+                    if not ClickSelection(Players[CurrentPlayer].Strings[P_BOW]+'bow') then
+                      Exit;
+                end;
+       MODE_SHAFTS: begin
+                      if not ClickSelection('of') then
+                        Exit;
+                    end;
+    end;
+
+  end else
+    if not ClickSelection('bow') then
+      Exit;
+
+  Result := True;
+end;
+
+function FletchReaction2: Boolean;
+var
+  t: Integer;
+  P: TPoint;
+  useInfo: Array[0..1] of Array of String;
+  selectInfo: String;
+begin
+  if not LoggedIn then Exit;
+
+  Debug('Fletching...');
+  GameTab(Tab_Inv);
+
+  case Players[CurrentPlayer].Integers[P_MODE] of
+    MODE_SHAFT_TO_HEADLESS : begin
+                               useInfo[0] := ['rrow', 'ow sh', 'shaft'];
+                               useInfo[1] := ['Feat', 'ather'];
+                               selectInfo := 'of';
+                             end;
+    MODE_HEADLESS_TO_ARROW : begin
+                               useInfo[0] := ['eadless', 'ess ar', 'rrow'];
+                               useInfo[1] := [Players[CurrentPlayer].Strings[P_TYPE], 'rrowh', 'heads'];
+                               selectInfo := 'of';
+                             end;
+  end;
+
+  case Players[CurrentPlayer].Integers[P_MODE] of
+    MODE_SHAFT_TO_HEADLESS, MODE_HEADLESS_TO_ARROW :
+      begin
+        if not ClickItem(useInfo[0], InvBox(1)) then              //Use (1)
+          Exit;
+        if not ClickItem(useInfo[1], InvBox(2)) then              //Use (2)
+          Exit;
+        MarkTime(lTimer)
+        repeat
+          if not ClickSelection(selectInfo) then                  //Selection screen
+            Exit
+          else
+            Break;
+
+          if OverTime(lTimer) then
+            Exit;
+        until(false)
+        Result := true;
+      end;
+    //MODE_SHAFT_TO_ARROW    :
+  end;
+end;
+
+function WhileReaction: Boolean;
+var
+  itemsLeft, oldCount, t: Integer;
+begin
+  oldCount := -1;
+  MarkTime(t);
+  repeat
+    case Players[CurrentPlayer].Integers[P_MODE] of
+      MODE_CUT, MODE_SHAFTS : itemsLeft := CountItemsInv(Log);
+      MODE_STRING           : itemsLeft := CountItemsInv(bString);
+    end;
+
+    if oldCount = -1 then
+        oldCount := itemsLeft;
+
+    if oldCount <> itemsLeft then
+    begin
+      oldCount := itemsLeft;
+      MarkTime(t);
+    end;
+
+    if LevelUp then
+    begin
+      Debug('You Levelled Up!');
+      Inc(Total.LevelUps);
+      Inc(PlayerTotal[CurrentPlayer].LevelUps);
+      ExamineInv;
+      FletchReaction;
+    end;
+
+    if RandomRange(1, AntiBanAmount) = 1 then DoAntiBan;
+
+    if not LoggedIn then Exit;
+
+    //Debug('TimeFromMark(tt) := ' +IntToStr(TimeFromMark(tt))); //shows how much time has passed where NOTHING has been done
+    if (TimeFromMark(t) > (20*1*1000)) then
+    begin
+      Debug('Fletching has timed out...');
+      if oldCount = itemsLeft then
+      begin
+        FletchReaction;
+        MarkTime(t);
+      end else
+        Exit;
+    end;
+
+    FindNormalRandoms;
+
+  until((itemsLeft <= 0) {or (InvCount <= 14)})
+
+  Debug('Finished fletching load...');
+  Result:= True;
+  case Players[CurrentPlayer].Integers[P_MODE] of
+    MODE_CUT: begin
+            PlayerTotal[CurrentPlayer].Cut := PlayerTotal[CurrentPlayer].Cut + 28;
+            PlayerTotal[CurrentPlayer].XP := PlayerTotal[CurrentPlayer].XP + XP_Gain*28;
+            stats_IncVariable(Capitalize(Players[CurrentPlayer].Strings[P_TYPE])+ ' Logs Fletched', 28);
+            stats_IncVariable('Fletching EXP (Gained)', Round(XP_Gain*28));
+          end;
+    MODE_STRING: begin
+            PlayerTotal[CurrentPlayer].Strung := PlayerTotal[CurrentPlayer].Strung + 14;
+            PlayerTotal[CurrentPlayer].XP := PlayerTotal[CurrentPlayer].XP + XP_Gain*14;
+            stats_IncVariable(Capitalize(Players[CurrentPlayer].Strings[P_TYPE])+ ' Bows Strung', 14);
+            stats_IncVariable('Fletching EXP (Gained)', Round(XP_Gain*14));
+          end;
+    MODE_SHAFTS: begin
+            PlayerTotal[CurrentPlayer].Cut := PlayerTotal[CurrentPlayer].Cut + 28;
+            PlayerTotal[CurrentPlayer].XP := PlayerTotal[CurrentPlayer].XP + XP_Gain*28;
+            stats_IncVariable(Capitalize(Players[CurrentPlayer].Strings[P_TYPE])+ ' Logs Fletched', 28);
+            stats_IncVariable('Fletching EXP (Gained)', Round(XP_Gain*28));
+          end;
+  end;
+end;
+
+function WhileReaction2: Boolean;
+var
+  t: Integer;
+begin
+  MarkTime(t);
+  repeat
+    if LevelUp then
+    begin
+      Debug('You Levelled Up!');
+      Inc(Total.LevelUps);
+      Inc(PlayerTotal[CurrentPlayer].LevelUps);
+    end;
+
+    if RandomRange(1, AntiBanAmount) = 1 then DoAntiBan;
+    if not LoggedIn then Exit;
+    Wait(RandomRange(200, 500));
+
+    // if the shafts are +150
+  until(TimeFromMark(t) > (10000 + RandomRange(500, 1000)))
+
+  case Players[CurrentPlayer].Integers[P_MODE] of
+    MODE_SHAFT_TO_HEADLESS: begin
+            //PlayerTotal[CurrentPlayer].Cut := PlayerTotal[CurrentPlayer].Cut + 28;
+            PlayerTotal[CurrentPlayer].XP := PlayerTotal[CurrentPlayer].XP + XP_Gain*10;
+            stats_IncVariable('Headless Arrows Fletched', 28);
+            stats_IncVariable('Fletching EXP (Gained)', Round(XP_Gain*10));
+          end;
+    MODE_HEADLESS_TO_ARROW: begin
+            //PlayerTotal[CurrentPlayer].Strung := PlayerTotal[CurrentPlayer].Strung + 14;
+            PlayerTotal[CurrentPlayer].XP := PlayerTotal[CurrentPlayer].XP + XP_Gain*10;
+            stats_IncVariable(Capitalize(Players[CurrentPlayer].Strings[P_TYPE])+ ' Arrows Fletched', 14);
+            stats_IncVariable('Fletching EXP (Gained)', Round(XP_Gain*10));
+          end;
+  end;
+
+  Result := True;
+end;
+
+function CalculateXP: Extended;
+var
+  xp: Extended;
+begin
+  Case Capitalize(Players[CurrentPlayer].Strings[P_BOW]) of
+    'Short': begin
+               Case Capitalize(Players[CurrentPlayer].Strings[P_TYPE]) of
+                 'Normal': xp := 5;
+                 'Oak'   : xp := 16.5;
+                 'Willow': xp := 33.3;
+                 'Maple' : xp := 50;
+                 'Yew'   : xp := 67.5;
+                 'Magic' : xp := 83.3;
+               end;
+             end;
+    'Long' : begin
+               Case Capitalize(Players[CurrentPlayer].Strings[P_TYPE]) of
+                 'Normal': xp := 10;
+                 'Oak'   : xp := 25;
+                 'Willow': xp := 41.5;
+                 'Maple' : xp := 58.3;
+                 'Yew'   : xp := 75;
+                 'Magic' : xp := 91.5;
+               end;
+             end;
+  end;
+
+  case Players[CurrentPlayer].Integers[P_MODE] of
+    MODE_STRING : begin
+      Case Capitalize(Players[CurrentPlayer].Strings[P_BOW]) of
+        'Short': begin
+                   Case Capitalize(Players[CurrentPlayer].Strings[P_TYPE]) of
+                     'Willow': xp := 33.2;
+                     'Magic' : xp := 83.2;
+                   end;
+                 end;
+        'Long' : begin
+                   Case Capitalize(Players[CurrentPlayer].Strings[P_TYPE]) of
+                     'Maple' : xp := 58.2;
+                   end;
+                 end;
+      end;
+    end;
+    MODE_SHAFTS            : xp := 5;
+    MODE_SHAFT_TO_HEADLESS : xp := 15;
+    MODE_HEADLESS_TO_ARROW : begin
+                               Case Capitalize(Players[CurrentPlayer].Strings[P_TYPE]) of
+                                 'Bronze' : xp := 19.5;
+                                 'Iron'   : xp := 37.5;
+                                 'Steel'  : xp := 75;
+                                 'Mithril': xp := 112.5;
+                                 'Adamant': xp := 150;
+                                 'Rune'   : xp := 187.5;
+                                 'Dragon' : xp := 0;   // wft, from:  http://runescape.wikia.com/wiki/Arrow_head
+                               end;
+    end;
+  end;
+
+  Result := xp * XP_SCKnife;
+end;
+
+function LatestVer: String;
+begin
+  Result := GetPage('http://pastehtml.com/view/bitia8h2d.txt');
+end;
+
+procedure SetupScript;
+begin
+  Disguise('Fantastic Fletcher has been started!')
+
+  ClearDebug;
+  ClearReport;
+
+  Writeln('Fanastic Fletcher is loading...');
+
+  if not VerOveride then
+  begin
+    if LatestVer=ScriptVersion then
+    begin
+      Writeln('Your version of Fantastic Fletcher is up-to-date!');
+    end else
+    begin
+      if LatestVer='' then
+      begin
+         Writeln('Error conecting to server; be cautious. Continuing...');
+      end else
+      begin
+        Writeln('Please update Fantastic Fletcher to ' +LatestVer);
+        Writeln('Download at: http://villavu.com/forum/showthread.php?t=69656');
+        TerminateScript;
+      end;
+    end;
+  end else
+    Writeln('Be very careful, you are not using the version checker...');
+
+  {$IFDEF SMART8}
+    Smart_FixSpeed := True;
+  {$ENDIF}
+
+  SetupSRL;
+  DeclarePlayers;
+  LoadGlobals;
+
+  if SRLStats_Username = '' then
+  begin
+    SRLStats_Username := 'Anonymous';
+    SRLStats_Password := 'anon1337';
+  end;
+  SetupSRLStats(370, SRLStats_Username, SRLStats_Password);
+
+  Log.Name := 'Log';
+  uBow.Name := 'Unstrung Bow';
+  bString.Name := 'Bow String';
+  XP_SCKnife := 1;
+
+  SetLength(PlayerTotal, HowManyPlayers);
+
+  WhenBreak:= ((1000*60)*Whenbreak);
+  AddOnTerminate('AddToTerminate');
+end;
+
+function MakingWhat(whichPlayer: Integer): String;
+var
+  joined: String;
+  s: Array of String;
+  i: Integer;
+begin
+  case Players[whichPlayer].Integers[P_MODE] of
+    MODE_CUT, MODE_STRING : SetLength(s, 4);
+  else
+    SetLength(s, 3);
+  end;
+
+  case Players[whichPlayer].Integers[P_MODE] of
+    MODE_CUT               : s[0] := 'cutting ';
+    MODE_STRING            : s[0] := 'stringing ';
+    MODE_SHAFTS            : begin
+                               result := 'fletching Arrow shafts';
+                               Exit;
+                             end;
+    MODE_SHAFT_TO_HEADLESS : begin
+                               result := 'fletching Headless arrows';
+                               Exit;
+                             end;
+    MODE_HEADLESS_TO_ARROW : s[0] := 'fletching ';
+  end;
+
+  s[1] := Capitalize(Players[whichPlayer].Strings[P_TYPE]) +' ';
+
+  case Players[whichPlayer].Integers[P_MODE] of
+    MODE_CUT, MODE_STRING : s[2] := lowercase(Players[whichPlayer].Strings[P_BOW]);
+  end;
+
+  case Players[whichPlayer].Integers[P_MODE] of
+    MODE_CUT               : s[3] := 'bow(u)';
+    MODE_STRING            : s[3] := 'bow';
+    MODE_HEADLESS_TO_ARROW : s[2] := 'arrow';
+  end;
+
+  joined := '';
+  for i:=0 to Length(s)-1 do
+    joined := joined + s[i];
+
+  Result := joined;
+end;
+
+procedure SetupPlayer;
+var
+  P, PP: TPoint;
+begin
+  case Players[CurrentPlayer].Integers[P_MODE] of
+  MODE_CUT, MODE_SHAFTS: begin
+      optionUpText := 'Craft';
+      wAmount := 0;
+      case Players[CurrentPlayer].Booleans[P_SCKNIFE] of
+        false: begin
+                 wCount := 28;
+                 XP_SCKnife := 1;
+               end;
+        true:  begin
+                 wCount := 27;
+                 XP_SCKnife := 2;
+               end;
+      end;
+      if Players[CurrentPlayer].Integers[P_MODE] = MODE_SHAFTS then
+        Players[CurrentPlayer].Strings[P_TYPE] := 'Normal';
+    end;
+  MODE_STRING: begin
+      optionUpText := 'Use';
+      wAmount := 14;
+      wCount := 14;
+    end;
+
+  end;
+
+  P := BankIndexToBankPoint(Players[CurrentPlayer].Integers[P_BANK_SLOT]);
+  PP := BankIndexToBankPoint(Players[CurrentPlayer].Integers[P_BANK_SLOT] + 1);
+  wCol    := P.x;
+  wRow    := P.y;
+  wCol2    := PP.x;
+  wRow2    := PP.y
+
+  XP_Gain := CalculateXP;
+
+  LoginPlayer;
+  Writeln('Player ' +IntToStr(CurrentPlayer)+ ' is ' +MakingWhat(CurrentPlayer));
+  wait(100+random(50));
+
+  SetAngle(SRL_ANGLE_HIGH);
+
+  Case lowercase(Players[CurrentPlayer].Strings[P_BANK_LOC]) of
+    'sw' : WhichBank := LOC_SOULW;
+    'cw' : WhichBank := LOC_CASTLEW;
+    'br' : WhichBank := LOC_BURTHROPE;
+    //'burthrope'?
+  end;
+  Case lowercase(Players[CurrentPlayer].Strings[P_BANK_LOC]) of
+    'sw' : Debug('You are at Soulwars bank chest...');
+    'cw' : Debug('You are at CastleWars bank chest...');
+    'br' : Debug('You are at Burthrope bank chest...');
+  end;
+
+  MarkTime(RoundTime);
+end;
+
+procedure CalculateTotals;
+var
+  i: Integer;
+begin
+  Total.Cut := 0;
+  Total.LevelUps := 0;
+  Total.Strung := 0;
+  Total.XP := 0;
+
+  for i:=0 to HowManyPlayers-1 do
+    Total.Cut := Total.Cut + PlayerTotal[i].Cut;
+
+  for i:=0 to HowManyPlayers-1 do
+    Total.LevelUps := Total.LevelUps + PlayerTotal[i].LevelUps;
+
+  for i:=0 to HowManyPlayers-1 do
+    Total.Strung := Total.Strung + PlayerTotal[i].Strung;
+
+  for i:=0 to HowManyPlayers-1 do
+    Total.XP := Total.XP + PlayerTotal[i].XP;
+end;
+
+procedure ProgressReport;
+var
+  i: Integer;
+begin
+  CalculateTotals;
+
+  if not extraDebug then ClearDebug;
+
+  Writeln('/-------------------------------------------------------------\');
+  Writeln('|-------------------------------------------------------------|');
+  Writeln(PadR('|                       -daazndagger-''s', 62) + '|');
+  Writeln(PadR('|                   ' +ScriptName, 62) + '|');
+  Writeln(PadR('|                        Version ' + ScriptVersion, 62) + '|');
+  Writeln('|-------------------------------------------------------------|');
+  Writeln(PadR('|     TOTALS : ', 62) + '|');
+  Writeln(PadR('|       Time Running  : ' +MsToTime(GetTimeRunning, Time_Abbrev), 62) + '|');
+  for i:=0 to HowManyPlayers-1 do
+  begin
+    if (Players[i].Integers[P_MODE] = MODE_CUT)
+    or (Players[i].Integers[P_MODE] = MODE_SHAFTS) then
+    begin
+      Writeln(PadR('|       Logs Cut      : ' +IntToStr(Total.Cut), 62) + '|');
+      Break;
+    end;
+  end;
+  for i:=0 to HowManyPlayers-1 do
+  begin
+    if Players[i].Integers[P_MODE] = MODE_STRING then
+    begin
+      Writeln(PadR('|       Bows Strung   : ' +IntToStr(Total.Strung), 62) + '|');
+      Break;
+    end;
+  end;
+  Writeln(PadR('|       Exp Gained    : ' +IntToStr(Round(Total.XP)), 62) + '|');
+  Writeln(PadR('|       Level Up''s    : ' +IntToStr(Total.LevelUps), 62) + '|');
+  Writeln(PadR('|     ', 62) + '|');
+  for i:=0 to HowManyPlayers-1 do
+  begin
+    Writeln(PadR('|     PLAYER ' +IntToStr(i)+ ' : [ ' +Capitalize(MakingWhat(i))+ ' ]', 62) + '|');
+    Writeln(PadR('|       Time Running  : ' +MsToTime(PlayerWorked(i), Time_Abbrev), 62) + '|');
+    if Players[i].Integers[P_MODE] = MODE_CUT then
+      Writeln(PadR('|       Logs Cut      : ' +IntToStr(PlayerTotal[i].Cut), 62) + '|');
+    if Players[i].Integers[P_MODE] = MODE_STRING then
+      Writeln(PadR('|       Bows Strung   : ' +IntToStr(PlayerTotal[i].Strung), 62) + '|');
+    Writeln(PadR('|       Exp Gained    : ' +IntToStr(Round(PlayerTotal[i].XP)), 62) + '|');
+    Writeln(PadR('|       Exp / Hour    : ' +IntToStr(Round(PlayerTotal[i].XP*60/(PlayerWorked(i)/60000))), 62) + '|');
+    Writeln(PadR('|       False Reason  : ' +Players[i].Loc, 62) + '|');
+    Writeln(PadR('|     ', 62) + '|');
+  end;
+  Writeln(PadR('|     ', 62) + '|');
+  Writeln('|-------------------------------------------------------------|');
+  Writeln('\-------------------------------------------------------------/');
+  Writeln('');
+
+  Stats_Commit;
+end;
+
+procedure AddToTerminate;
+begin
+  ProgressReport;
+  Disguise('[F]antastic [F]letcher has been successfully executed.');
+end;
+
+procedure TakeBreak;
+var
+  Breaktime, Timeleft, i, e: Integer;
+begin
+  if LoggedIn then
+    Logout;
+
+  if Players[CurrentPlayer].Worked > (2*60*60*1000) then
+  begin
+    Breaktime:= RandomRange(20*60*1000, 35*60*1000);
+  end else
+    Breaktime:= RandomRange(Players[CurrentPlayer].Worked / 8, Players[CurrentPlayer].Worked / 4);
+
+  Writeln('Taking a break for ' +mstotime(breaktime, Time_Abbrev) );
+  Writeln('');
+
+  i:= GetSystemTime;
+  repeat
+    wait(1000);
+    e:= GetSystemTime;
+    timeleft:= breaktime - (e - i);
+    Disguise('We have ' + mstotime(timeleft, Time_Abbrev) + ' to go');
+  until( (e-i) >= breaktime)
+
+  Disguise('Finished break.');
+end;
+
+procedure LogoutProcess;
+begin
+  Debug('Loging out...');
+  if BankScreen then
+    CloseBank;
+
+  Logout;
+
+  ProgressReport;
+
+  if not( lowercase(Players[CurrentPlayer].Loc) = '') then
+    Players[CurrentPlayer].Active:= false;
+
+  if not AllPlayersInactive then
+  begin
+    TakeBreak;
+  end else
+    Exit;
+
+  NextPlayer(Players[CurrentPlayer].Active);
+end;
+
+function CUT_STRING_SHAFTS: Boolean;   //funct boolean
+begin
+  if not WithdrawReactants then
+  begin
+    Players[CurrentPlayer].Loc:= 'Could not withdraw';
+    Exit;
+  end;
+
+  if not( lowercase(Players[CurrentPlayer].Loc) = '') then
+    Exit;
+
+  if not FletchReaction then
+  begin
+    Players[CurrentPlayer].Loc:= 'Could not fletch';
+    Exit;
+  end;
+
+  FindNormalRandoms;
+
+  if not WhileReaction then
+  begin
+    Players[CurrentPlayer].Loc:= 'Could not finish fletching';
+    Exit;
+  end;
+
+  if ActAFK then
+  begin
+    case random(25) of
+      10: begin
+            Debug('Taking AFK break...');
+            Wait(RandomRange(10000, 45000));
+          end;
+    end;
+  end;
+
+  ProgressReport;
+
+  if Players[CurrentPlayer].Loc= 'Finished fletching' then
+    Exit;
+
+  Result:= True;
+end;
+
+function ARROWS: Boolean;
+begin
+  if not( lowercase(Players[CurrentPlayer].Loc) = '') then
+    Exit;
+
+  if not FletchReaction2 then
+  begin
+    Players[CurrentPlayer].Loc:= 'Could not fletch';
+    Exit;
+  end;
+
+  FindNormalRandoms;
+
+  if not WhileReaction2 then
+  begin
+    Players[CurrentPlayer].Loc:= 'Could not finish fletching';
+    Exit;
+  end;
+
+  if ActAFK then
+  begin
+    case random(25) of
+      10: begin
+            Debug('Taking AFK break...');
+            Wait(RandomRange(10000, 45000));
+          end;
+    end;
+  end;
+
+  ProgressReport;
+
+  if Players[CurrentPlayer].Loc= 'Finished fletching' then
+    Exit;
+
+  Result:= True;
+end;
+
+
+      {if not DepositProducts then
+      begin
+        Players[CurrentPlayer].Loc:= 'Could not deposit';
+        Break;
+      end;              }
+
+begin
+  SetupScript;
+
+  repeat
+    SetupPlayer;
+
+    repeat
+      if not( lowercase(Players[CurrentPlayer].Loc) = '') then
+        Break;
+
+      case Players[CurrentPlayer].Integers[P_MODE] of
+        MODE_CUT,
+        MODE_STRING,
+        MODE_SHAFTS: CUT_STRING_SHAFTS;
+
+        MODE_SHAFT_TO_HEADLESS,
+        MODE_HEADLESS_TO_ARROW,
+        MODE_SHAFT_TO_ARROW{,
+        MODE_LOG_TO_SHAFT}: ARROWS;
+      end;
+
+    until( TimeFromMark(RoundTime) >= (WhenBreak + RandomRange(-(1000*60*3), (1000*60*3)) ) )
+
+    LogoutProcess;
+
+  until(AllPlayersInactive) or ( TotalTimeInactive>(1000*60*10) )
+  Debug('All Players Inactive, or timed out. Script is finished!');
+
+  if LoggedIn then
+    Logout;
+end.
