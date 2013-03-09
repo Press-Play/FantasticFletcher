@@ -1116,7 +1116,8 @@ end;
 
 procedure UponTermination;
 var
-  s, sPoint, sCol: String;
+  s: String;
+  sPoint, sCol: Array of String;
   i, a, b: Integer;
 begin
   ProgressReport;
@@ -1126,29 +1127,33 @@ begin
     for i := 0 to High(ReportString) do
       s := s + ReportString[i] + Chr(13);
 
+    SetLength(sPoint, HowManyPlayers+1);
+    SetLength(sCol, HowManyPlayers+1);
     for i := 0 to HowManyPlayers-1 do
     begin
       {if not( lowercase(Players[i].Loc) = '') then
       begin  }
-        sPoint := 'BitmapStoragePoints := [';
-        sCol := 'BitmapStorageColors := [';
+        sPoint[i] := IntToStr(i) + ': BitmapStoragePoints := [';
+        sCol[i] := IntToStr(i) + ': BitmapStorageColors := [';
         for a := 0 to High(FalseSCR[i].Pt ) do
           for b := 0 to High(FalseSCR[i].Pt[a]) do
           begin
-            sPoint := sPoint+PointToStr(FalseSCR[i].Pt[a][b])+Chr(13);
-            sCol := sCol+IntToStr(FalseSCR[i].Col[a][b]);
+            sPoint[i] := sPoint[i]+PointToStr(FalseSCR[i].Pt[a][b])+Chr(13);
+            sCol[i] := sCol[i]+IntToStr(FalseSCR[i].Col[a][b]);
           end;
 
-        sPoint := sPoint + '];';
-        sCol := sCol + '];';
+        sPoint[i] := sPoint[i] + '];';
+        sCol[i] := sCol[i] + '];';
+        Writeln(sPoint[i]);
+        Writeln(sCol[i]);
+        sPoint[High(sPoint)] := sPoint[High(sPoint)] + Chr(13) + Chr(13);
+        sCol[High(sCol)] := sCol[High(sCol)] + Chr(13) + Chr(13);
       {end; }
     end;
-    //s := Replace(s, ' ', '%20'{, [rfReplaceAll]});
+    s := Replace(s, ' ', {'%20}'&nbsp;'{, [rfReplaceAll]});
     SendReport(s + Chr(13) + Chr(13) +
-               sPoint + Chr(13) + Chr(13) +
-               sCol);
-    Writeln(sPoint);
-    Writeln(sCol);
+               sPoint[High(sPoint)] + Chr(13) + Chr(13) +
+               sCol[High(sCol)]);
   end;
 end;
 

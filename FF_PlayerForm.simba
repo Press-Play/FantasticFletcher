@@ -62,7 +62,8 @@ var
   lblPMode,
   lblPType,
   lblPBow,
-  lblSCKnife: TLabel;
+  lblSCKnife,
+  lblActive: TLabel;
 
   lblAbout: Array of TLabel;
 
@@ -81,7 +82,8 @@ var
   boxDropPMode,
   boxDropPType,
   boxDropPBow,
-  boxDropPSCKnife: TComboBox;
+  boxDropPSCKnife,
+  boxDropActive: TComboBox;
 
   btnPressPlay,
   btnSave,
@@ -90,6 +92,8 @@ var
 
   boolIndex: Array[0..1] of Boolean;
   bankIndex: Array[0..21] of Variant;
+
+  PrevItemIndex: Integer;
   {ModeIndex: Array[0..MODE_LAST] of Integer;
   TypeIndex: Array[0..TYPE_LAST] of Integer;
   BowIndex: Array[0..BOW_LAST] of Integer; }
@@ -123,6 +127,14 @@ begin
   bankIndex[21] := SRL_BANK_SP;
 end;
 
+function BoolToInt(b: Boolean): Integer;
+begin
+  if b then
+    Result := 0
+  else
+    Result := 1;
+end;
+
 procedure ResetGlobalsForm;
 begin
   boxTextWhenBreak.Text := '240';
@@ -144,6 +156,7 @@ begin
   boxDropPType.ItemIndex := TYPE_MAPLE;
   boxDropPBow.ItemIndex := BOW_SHIELD;
   boxDropPSCKnife.ItemIndex := 1; //False
+  boxDropActive.ItemIndex := 0; //True
 end;
 
 procedure RefreshPlayerList;
@@ -158,6 +171,8 @@ begin
 end;
 
 procedure ClickAddPlayer(Sender: TObject);
+var
+  i: Integer;
 begin
   if (boxTextName.Text = '')
   or (boxTextPass.Text = '')
@@ -165,20 +180,32 @@ begin
   or (boxTextBankTab.Text = '')
   or (boxTextBankSlot.Text = '') then
   begin
-    Disguise('Form Incomplete');
-    ShowMessage('Part of the player form is incomplete.' +Chr(13)+
-                'It must all be filled in to add a player.');
-    Disguise(ScriptName);
+    if not (Sender = PlayerList) then
+    begin
+      Disguise('Form Incomplete');
+      ShowMessage('Part of the player form is incomplete.' +Chr(13)+
+                  'It must all be filled in to add a player.');
+      Disguise(ScriptName);
+    end;
     Exit;
   end;
 
-  Writeln('Added a player: '+boxTextName.Text);
+  if not (Sender = PlayerList) then
+    Writeln('Added player: '+boxTextName.Text);
+
   Debug('Old amount of players: '+IntToStr(PlayerList.Items.Count), 2);
-  PlayerList.Items.Add(IntToStr(PlayerList.Items.Count)+': '+boxTextName.Text);
+  if not (Sender = PlayerList) then
+    PlayerList.Items.Add(IntToStr(PlayerList.Items.Count)+': '+boxTextName.Text);
+
   Debug('New amount of players: '+IntToStr(PlayerList.Items.Count), 2);
   HowManyPlayers := PlayerList.Items.Count;
   NumberOfPlayers(HowManyPlayers);
-  with Players[PlayerList.Items.Count-1] do
+  if Sender = PlayerList then
+    i := PrevItemIndex
+  else
+    i := PlayerList.Items.Count-1;
+
+  with Players[i] do
   begin
     Name        := boxTextName.Text;
     Pass        := boxTextPass.Text;
@@ -193,7 +220,7 @@ begin
     Booleans[P_SCKNIFE]   := boolIndex[boxDropPSCKnife.ItemIndex];
 
     Member      := true;
-    Active      := true;
+    Active      := boolIndex[boxDropActive.ItemIndex];
   end;
   ResetPlayerForm;
 end;
@@ -379,6 +406,63 @@ begin
   end;
 end;
 
+procedure EditPlayer(Sender: TObject);
+var
+  i: Integer;
+begin
+  i := PlayerList.ItemIndex;
+  PrevItemIndex := i;
+  Debug('PlayerList.ItemIndex: '+IntToStr(i), 2);
+
+  boxTextName.Text := Players[i].Name;
+  boxTextPass.Text := Players[i].Pass;
+  boxTextPin.Text := Players[i].Pin;
+  boxTextBankTab.Text := IntToStr(Players[i].Integers[P_BANK_TAB]);
+  boxTextBankSlot.Text := IntToStr(Players[i].Integers[P_BANK_SLOT]);
+  boxDropBankLoc.ItemIndex := Players[i].Arrays[P_BANK_LOC][0];
+  boxDropPMode.ItemIndex := Players[i].Integers[P_MODE];
+  boxDropPType.ItemIndex := Players[i].Integers[P_TYPE];
+  boxDropPBow.ItemIndex := Players[i].Integers[P_BOW];
+  boxDropPSCKnife.ItemIndex := BoolToInt(Players[i].Booleans[P_SCKNIFE]);
+  boxDropActive.ItemIndex := BoolToInt(Players[i].Active);
+end;
+
+{procedure DeletePlayer(Sender: TObject; var Key: Char);
+begin
+  if Key = Chr(46) then
+  begin
+    if not (Sender = PlayerList) then
+      Writeln('Deleted player: '+PlayerList.Items[PlayerList.ItemIndex]);
+
+    Debug('Old amount of players: '+IntToStr(PlayerList.Items.Count), 2);
+    if not (Sender = PlayerList) then
+      PlayerList.Items.Add(IntToStr(PlayerList.Items.Count)+': '+boxTextName.Text);
+
+    Debug('New amount of players: '+IntToStr(PlayerList.Items.Count), 2);
+    HowManyPlayers := PlayerList.Items.Count;
+    NumberOfPlayers(HowManyPlayers);
+
+    with Players[PlayerList.ItemIndex]] do
+    begin
+      Name        := '';
+      Pass        := '';
+      Pin         := '';
+
+      Arrays[P_BANK_LOC]    := [0];
+      Integers[P_BANK_TAB]  := 0;
+      Integers[P_BANK_SLOT] := 0;
+      Integers[P_MODE]      := 0;
+      Integers[P_TYPE]      := 0;
+      Integers[P_BOW]       := 0;
+      Booleans[P_SCKNIFE]   := False;
+
+      Member      := True;
+      Active      := True;
+    end;
+    ResetPlayerForm;
+  end;
+end;  }
+
 procedure InitForm_PlayerList;
 begin
   PlayerList := TListBox.Create(nil);
@@ -390,6 +474,11 @@ begin
     Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*1);
     Width := BOX_LENGTH_LONG;
     Height := 11+BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*6);
+    OnClick := @ClickAddPlayer;
+    OnDblClick := @EditPlayer;
+    //OnKeyDown := @DeletePlayer;
+    Hint := 'Double-click to edit a player. Click anywhere '+chr(13)+'in this box again to save the editions.';
+    ShowHint := True;
   end;
 end;
 
@@ -400,12 +489,13 @@ begin
   boxDropPType := TComboBox.Create(FrmDesign);
   boxDropPBow := TComboBox.Create(FrmDesign);
   boxDropPSCKnife := TComboBox.Create(FrmDesign);
+  boxDropActive := TComboBox.Create(FrmDesign);
 
   with boxDropBankLoc do
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*5);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*6);
     Width := BOX_LENGTH_LONG;
     Height := FONT_SIZE + 2;
     Style := csDropDownList;
@@ -436,7 +526,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*9);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*10);
     Width := BOX_LENGTH_LONG+200;
     Height := FONT_SIZE + 2;
     Style := csDropDownList;
@@ -453,7 +543,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*10);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*11);
     Width := BOX_LENGTH_LONG+200;
     Height := FONT_SIZE + 2;
     Style := csDropDownList;
@@ -488,7 +578,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*11);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*12);
     Width := BOX_LENGTH_LONG+200;
     Height := FONT_SIZE + 2;
     Style := csDropDownList;
@@ -506,8 +596,19 @@ begin
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*12);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*13);
     Width := BOX_LENGTH_LONG+200;
+    Height := FONT_SIZE + 2;
+    Style := csDropDownList;
+    Items.Add('True');
+    Items.Add('False');
+  end;
+  with boxDropActive do
+  begin
+    Parent := P.Pages[1];
+    Left := BOX_PADDING_LEFT+50;
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*3);
+    Width := BOX_LENGTH_LONG;
     Height := FONT_SIZE + 2;
     Style := csDropDownList;
     Items.Add('True');
@@ -561,7 +662,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50; ;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*4);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*5);
     Width := BOX_LENGTH_LONG;
     Height := FONT_SIZE + 2;
   end;
@@ -569,7 +670,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50; ;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*6);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*7);
     Width := BOX_LENGTH_LONG;
     Height := FONT_SIZE + 2;
   end;
@@ -577,7 +678,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := BOX_PADDING_LEFT+50; ;
-    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*7);
+    Top := BOX_PADDING_TOP + (BOX_VERTICAL_SPACING*8);
     Width := BOX_LENGTH_LONG;
     Height := FONT_SIZE + 2;
   end;
@@ -711,7 +812,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 3);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 4);
     Caption := 'BANK DETAILS';
     Font.Style := [fsBold, fsUnderline];
   end;
@@ -719,7 +820,7 @@ begin
   begin
     Parent := P.Pages[1];
     Left := LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 8);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 9);
     Caption := 'MODE SETUP';
     Font.Style := [fsBold, fsUnderline];
   end;
@@ -742,6 +843,7 @@ begin
   lblPType := TLabel.Create(FrmDesign);
   lblPBow := TLabel.Create(FrmDesign);
   lblSCKnife := TLabel.Create(FrmDesign);
+  lblActive := TLabel.Create(FrmDesign);
 
   with lblName do
   begin
@@ -757,60 +859,67 @@ begin
     Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 2);
     Caption := 'Password:';
   end;
+  with lblActive do
+  begin
+    Parent := P.Pages[1];
+    Left := INDENT_PADDING + LBL_PADDING_LEFT;
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 3);
+    Caption := 'Active:';
+  end;
   with lblPin do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 4);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 5);
     Caption := 'Bank Pin:';
   end;
   with lblBankLoc do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 5);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 6);
     Caption := 'Bank Location:';
   end;
   with lblBankTab do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 6);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 7);
     Caption := 'Bank tab:';
   end;
   with lblBankSlot do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 7);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 8);
     Caption := 'Bank slot:';
   end;
   with lblPMode do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 9);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 10);
     Caption := 'Fletching Mode:';
   end;
   with lblPType do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 10);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 11);
     Caption := 'Wood/Metal type:';
   end;
   with lblPBow do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 11);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 12);
     Caption := 'Bow type:';
   end;
   with lblSCKnife do
   begin
     Parent := P.Pages[1];
     Left := INDENT_PADDING + LBL_PADDING_LEFT;
-    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 12);
+    Top := LBL_PADDING_TOP + (LBL_VERTICAL_SPACING * 13);
     Caption := 'Using SC Knife:';
   end;
 end;
