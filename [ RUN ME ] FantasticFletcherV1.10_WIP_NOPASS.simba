@@ -837,7 +837,7 @@ end;
 {$ENDIF}
 procedure SetupScript;
 var
-  i: Integer;
+  i, M, T, B: Integer;
 begin
   SetScriptProp(SP_WriteTimeStamp, [True]);
   Disguise(ScriptName);
@@ -881,7 +881,16 @@ begin
   WhenBreak:= ((1000*60)*Whenbreak);
 
   for i := 0 to HowManyPlayers-1 do
+  begin
     Players[i].Booleans[P_FINISHED_REACTANTS] := false;
+    M := Players[i].Integers[P_MODE]
+    T := Players[i].Integers[P_TYPE]
+    B := Players[i].Integers[P_BOW]
+    Players[i].Strings[P_NAME]      := Item[M][T][B]._Name;
+    Players[i].Strings[P_TYPE_NAME] := Item[M][T][B]._Type;
+    Players[i].Integers[P_GRID_LOC] := Item[M][T][B]._GridLoc;
+    Players[i].Extendeds[P_XP_GAIN] := Item[M][T][B]._XP * XP_SCKnife;
+  end;
 
   AddOnTerminate('UponTermination');
 end;
@@ -908,7 +917,7 @@ begin
     else s[0] := 'fletching ';
   end;
 
-  s[1] := Players[CurrentPlayer].Strings[P_NAME];
+  s[1] := Players[whichPlayer].Strings[P_NAME];
 
   joined := '';
   for i:=0 to Length(s)-1 do
@@ -918,8 +927,6 @@ begin
 end;
 
 procedure SetupPlayer;
-var
-  M, T, B: Integer;
 begin
   case Players[CurrentPlayer].Integers[P_MODE] of
     MODE_CUT, MODE_SHAFTS:
@@ -956,13 +963,6 @@ begin
   Bank.PointA := BankIndexToBankPoint(Players[CurrentPlayer].Integers[P_BANK_SLOT]);
   Bank.PointB := BankIndexToBankPoint(Players[CurrentPlayer].Integers[P_BANK_SLOT] + 1);
 
-  M := Players[CurrentPlayer].Integers[P_MODE]
-  T := Players[CurrentPlayer].Integers[P_TYPE]
-  B := Players[CurrentPlayer].Integers[P_BOW]
-  Players[CurrentPlayer].Strings[P_NAME]      := Item[M][T][B]._Name;
-  Players[CurrentPlayer].Strings[P_TYPE_NAME] := Item[M][T][B]._Type;
-  Players[CurrentPlayer].Integers[P_GRID_LOC] := Item[M][T][B]._GridLoc;
-  Players[CurrentPlayer].Extendeds[P_XP_GAIN] := Item[M][T][B]._XP * XP_SCKnife;
   Debug('Player properties:', 1);
   Debug('Name          : ' +Players[CurrentPlayer].Strings[P_NAME], 2);
   Debug('Type          : ' +Players[CurrentPlayer].Strings[P_TYPE_NAME], 2);
