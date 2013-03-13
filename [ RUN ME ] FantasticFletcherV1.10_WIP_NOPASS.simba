@@ -928,6 +928,13 @@ end;
 
 procedure SetupPlayer;
 begin
+  LoginPlayer;
+  Debug('Player ' +IntToStr(CurrentPlayer)+ ' is ' +MakingWhat(CurrentPlayer), 2);
+  Wait(100+random(50));
+  SetAngle(SRL_ANGLE_HIGH);
+  MarkTime(RoundTime);
+  ExitSquealOfFortune();
+
   case Players[CurrentPlayer].Integers[P_MODE] of
     MODE_CUT, MODE_SHAFTS:
     begin
@@ -968,13 +975,6 @@ begin
   Debug('Type          : ' +Players[CurrentPlayer].Strings[P_TYPE_NAME], 2);
   Debug('Grid Location : ' +IntToStr(Players[CurrentPlayer].Integers[P_GRID_LOC]), 2);
   Debug('XP Gain       : ' +FloatToStr(Players[CurrentPlayer].Extendeds[P_XP_GAIN]), 2);
-
-  LoginPlayer;
-  Debug('Player ' +IntToStr(CurrentPlayer)+ ' is ' +MakingWhat(CurrentPlayer), 2);
-  Wait(100+random(50));
-  SetAngle(SRL_ANGLE_HIGH);
-  MarkTime(RoundTime);
-  ExitSquealOfFortune();
 end;
 
 procedure CalculateTotals;
@@ -1138,19 +1138,19 @@ begin
         for a := 0 to High(FalseSCR[i].Pt ) do
           for b := 0 to High(FalseSCR[i].Pt[a]) do
           begin
-            sPoint[i] := sPoint[i]+PointToStr(FalseSCR[i].Pt[a][b])+Chr(13);
-            sCol[i] := sCol[i]+IntToStr(FalseSCR[i].Col[a][b]);
+            sPoint[i] := sPoint[i]+PointToStr(FalseSCR[i].Pt[a][b])+', ';
+            sCol[i] := sCol[i]+IntToStr(FalseSCR[i].Col[a][b])+', ';
           end;
 
         sPoint[i] := sPoint[i] + '];';
         sCol[i] := sCol[i] + '];';
-        Writeln(sPoint[i]);
-        Writeln(sCol[i]);
-        sPoint[High(sPoint)] := sPoint[High(sPoint)] + Chr(13) + Chr(13);
-        sCol[High(sCol)] := sCol[High(sCol)] + Chr(13) + Chr(13);
+        {Writeln(sPoint[i]);
+        Writeln(sCol[i]);  }
+        sPoint[High(sPoint)] := sPoint[i] + Chr(13) + Chr(13);
+        sCol[High(sCol)] := sCol[i] + Chr(13) + Chr(13);
       {end; }
     end;
-    s := Replace(s, ' ', {'%20}'&nbsp;'{, [rfReplaceAll]});
+    //s := Replace(s, ' ', {'%20}'&nbsp;'{, [rfReplaceAll]});
     SendReport(s + Chr(13) + Chr(13) +
                sPoint[High(sPoint)] + Chr(13) + Chr(13) +
                sCol[High(sCol)]);
