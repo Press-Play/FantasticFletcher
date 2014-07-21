@@ -1,0 +1,1165 @@
+program AIO_BankStander;
+{$DEFINE SMART}
+{$I SRL/SRL-6/SRL.simba}
+
+{$I FF_Globals.simba}
+{$DEFINE DEBUG}
+{$DEFINE SCREENSHOT}
+{$DEFINE PAINT}
+{$DEFINE UPDATE}
+{$DEFINE ANITLEECH}
+
+{
+
+
+
+                  8888888b.
+                  888   Y88b
+                  888    888
+                  888   d88P 888d888 .d88b.  .d8888b  .d8888b
+                  8888888P"  888P"  d8P  Y8b 88K      88K
+                  888        888    88888888 "Y8888b. "Y8888b.
+                  888        888    Y8b.          X88      X88
+                  888        888     "Y8888   88888P'  88888P'
+
+
+
+                        8888888b.  888
+                        888   Y88b 888
+                        888    888 888
+                        888   d88P 888  8888b.  888  888
+                        8888888P"  888     "88b 888  888
+                        888        888 .d888888 888  888
+                        888        888 888  888 Y88b 888
+                        888        888 "Y888888  "Y88888
+                                                     888
+                                                Y8b d88P
+                                                 "Y88P"
+
+
+
++------------------------------------------------------------------------------+
+
+
+              ____   __    _     _____   __    __  _____  _   __
+             | |_   / /\  | |\ |  | |   / /\  ( (`  | |  | | / /`
+             |_|   /_/--\ |_| \|  |_|  /_/--\ _)_)  |_|  |_| \_\_,
+                 ____  _     ____ _____  __    _     ____  ___
+                | |_  | |   | |_   | |  / /`  | |_| | |_  | |_)
+                |_|   |_|__ |_|__  |_|  \_\_, |_| | |_|__ |_| \
+
+
+
+{------------------------------------------------------------------------------]
+[  VARIBLE SETUP:                                                              ]
+[     See the thread for details.                                              ]
+[------------------------------------------------------------------------------}
+procedure loadGlobals();
+begin
+  whenBreak     := 180;       // Minutes until break
+  actAFK        := false;     // Do you randomly want to go AFK?
+  antiBan       := 100;       // How much anti-ban? [1=Always, 100=Sometimes]
+end;
+
+{------------------------------------------------------------------------------]
+[  PLAYER DECLARATION:                                                         ]
+[     Change accordingly.                                                      ]
+[------------------------------------------------------------------------------}
+procedure declarePlayers();
+begin
+  howManyPlayers := 1;
+  setLength(players, howManyPlayers);
+  currentPlayer := 0;
+
+  with players[0] do
+  begin
+    loginName       :='';         // Username
+    displayName     :='';         // Display name
+    password        :='';         // Password
+    bankPin         :='';         // Bank PIN
+
+    integers[P_BANK_LOC]    := BANK_CHEST_SW; // Bank location; which bank? Refer to "SRL\lib\interfaces\bankscreen.simba".
+    integers[P_BANK_TAB]    := 1;             // Bank Tab which items are located.
+    integers[P_BANK_SLOT]   := 1;             // Bank Slot which items are located.
+    integers[P_COMPASS]     := MM_DIRECTION_EAST;  // The direction we should face.
+
+    integers[P_MODE]      := MODE_CUT;      // Cuttng Bows, Stringing Bows, or Fletching Arrows? (See thread)
+    integers[P_TYPE]      := TYPE_MAPLE;    // What log/bow type? [TYPE_NORMAL, TYPE_OAK, TYPE_WILLOW, etc..]
+                                            // OR What arrow type? [TYPE_BRONZE, TYPE_IRON, TYPE_STEEL, etc..]
+    integers[P_BOW]       := BOW_SHIELD;    // Shieldbow or Shortbow? [BOW_SHIELD, BOW_SHORT]
+
+    world         := -1;          // Default -1 clicks the play button
+    isMember      := true;
+    isActive      := true;
+  end;
+
+end;
+
+{$IFDEF ANITLEECH}
+{==============================================================================}
+{                STOP STOP   STOP STOP   STOP-STOP    STOP STOP                }
+{                STOP           STOP     STOP STOP    STOP     |               }
+{      =====     STOP STOP      STOP     STOP STOP    STOP STOP     =====      }
+{                     STOP      STOP     STOP STOP    STOP                     }
+{                STOP STOP      STOP     STOP-STOP    STOP                     }
+{==============================================================================}
+
+const
+  scriptVersion = '2.00';
+  scriptName    = 'Fantastic Fletcher';
+
+{ ~~ The following options are not recommended to change
+     unless you have a well rounded scripting ability ~~ }
+
+  verOveride       = false;  // Disables the version check
+  SRLBanking       = true;   // Use SRL's functions for bank detection?
+  useQuickWithdraw = false;  // If true, loadout must be set to 1st preset
+  logoutDelay      = 0;      // Wait before logging out; for debugging
+  checkDisplayName = false;  // Checks to see if the display name is right after logging in.
+
+type
+  TBooleanFunction = function(): boolean;
+
+  TTotals = record             // Record for keeping totalled statistics
+    XP: Extended;
+    made: Integer;
+  end;
+
+  TItemProperties = record      // Record for all item properties
+    _Name, _Type: String;
+    _Materials: array[0..1] of String;
+    _XP: Extended;
+    _GridLoc: Integer;
+  end;
+
+  TModeProperties = record      // Record for all mode properties
+    _Withdraw, _Deposit: Integer;
+    _Tool: String;
+  end;
+
+
+
+var
+  roundTime: TTimeMarker;       // Roundtime for each player
+  reportString: TStringArray;   // For progress report
+  total: TTotals;               // Grand progress total
+  itemOutlines: T2DPointArray;  // Records how the items change
+
+  Item: array[0..MODE_LAST] of array[0..TYPE_LAST] of array[0..BOW_LAST] of TItemProperties;
+  Mode: array[0..MODE_LAST] of TModeProperties;
+
+{$I FF_ItemProperties.simba}
+{$I FF_ModeProperties.simba}
+
+{$IFNDEF CODEINSIGHT}
+//============================================================================//
+// Utility functions:
+//----------------------------------------------------------------------------//
+//============================================================================//
+// procedure debug(w: string);
+//   -Prints debug if DEBUG is defined.
+//============================================================================//
+procedure debug(w: string; lvl: Integer);
+var
+  i: Integer;
+begin
+  {$IFDEF DEBUG}
+    if lvl > 1 then
+    begin
+      w := '-' + w;
+      for i := 1 to lvl-1 do
+        w := '  ' + w;
+    end;
+    writeln(w);
+  {$ELSE}
+    status(w);
+  {$ENDIF}
+end;
+
+//============================================================================//
+// procedure paintClear(area: TBox);
+//   -Clears the 'area' on SMART.
+//============================================================================//
+procedure paintClear(area: TBox);
+begin
+  {$IFDEF PAINT}
+    {$IFDEF SMART}
+      {$IFDEF DEBUG}
+        smartImage.clearArea(area);
+      {$ENDIF}
+    {$ENDIF}
+  {$ENDIF}
+end;
+
+//============================================================================//
+// procedure paintClear(); overload;
+//   -Clears everything on SMART.
+//============================================================================//
+procedure paintClear(); overload;
+begin
+  {$IFDEF PAINT}
+    {$IFDEF SMART}
+      {$IFDEF DEBUG}
+        smartImage.drawClear(0);
+      {$ENDIF}
+    {$ENDIF}
+  {$ENDIF}
+end;
+
+//============================================================================//
+// procedure paintTPA(pts: TPointArray; col: Integer);
+//   -Paints TPA to SMART with colour 'col'
+//============================================================================//
+procedure paintTPA(pts: TPointArray; col: Integer);
+begin
+  {$IFDEF PAINT}
+    {$IFDEF SMART}
+      {$IFDEF DEBUG}
+        smartImage.DrawTPA(pts, col);
+      {$ENDIF}
+    {$ENDIF}
+  {$ENDIF}
+end;
+
+//============================================================================//
+// procedure paintBox(pts: TBox;  col: Integer);
+//   -Paints box to SMART with colour 'col'
+//============================================================================//
+procedure paintBox(pts: TBox;  col: Integer);
+begin
+  {$IFDEF PAINT}
+    {$IFDEF SMART}
+      {$IFDEF DEBUG}
+        smartImage.DrawBox(pts, col);
+      {$ENDIF}
+    {$ENDIF}
+  {$ENDIF}
+end;
+
+//============================================================================//
+// function overTime(theTime: TTimeMarker; theLimit: LongInt): boolean;
+//   -'theTime' is the TTimeMarker with the stored time.
+//   -'theLimit' is the amount of time which 'theTime'(ms) must exceed to
+//    return true.
+//============================================================================//
+function overTime(theTime: TTimeMarker; theLimit: LongInt): boolean;
+begin
+  result := (theTime.getTime() > theLimit);
+end;
+
+//============================================================================//
+// procedure incFloat(var Float, Amount: Extended);
+//   -Increases 'Float' by 'Amount'.
+//============================================================================//
+procedure incFloat(var Float: Extended; Amount: Extended);
+begin
+  Float := Float + Amount;
+end;
+
+//============================================================================//
+// procedure doAntiBan();
+//   -Performs generic antiban procedure.
+//============================================================================//
+procedure doAntiBan();
+var
+  r: Integer;
+begin;
+  if not isLoggedIn() then exit();
+
+  r := random(100);
+  case r of
+    10, 15: hoverRandomSkill();
+    20, 25: mouseMovingObject();
+    30, 40: randomCameraAngle(MS_ANGLE_HIGH);
+    50: pickUpMouse();
+    60: smallRandomMouse();
+    //70: ExamineInv;
+    80: boredHuman();
+    85: sleepAndMoveMouse(randomRange(1000,2000));
+    90: randomRClickItem();
+    95: mouseOffClient(OFF_CLIENT_RANDOM);
+  end;
+
+  case r of
+    10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 85, 90, 95:
+      begin
+        wait(randomRange(250, 1000));
+        gameTabs.openTab(TAB_BACKPACK);
+        debug('Antiban procedure performed.', 1);
+      end;
+  end;
+end;
+{$ENDIF}
+
+//============================================================================//
+// ItemTPA functions:
+//----------------------------------------------------------------------------//
+function isItemSelected(Area: TBox): Boolean;
+var
+  P: TPoint;
+begin
+  if not isItemIn(Area) then
+    debug('WARNING in isItemSelected(): There is no item in the area.', 0);
+
+  result := findColor(P.X, P.Y, ITEM_OUTLINE_WHITE, Area);
+end;
+
+function getItemOutline(Area: TBox): TPointArray;
+var
+  outlineColor: LongInt;
+  bounds: TBox;
+  i, h: Integer;
+begin
+  if not isItemIn(Area) then
+    exit();
+
+  //debug('BEGIN function getItemOutline(Area: TBox): TPointArray;', 0);
+  if isItemSelected(Area) then
+    outlineColor := ITEM_OUTLINE_WHITE
+  else
+    outlineColor := ITEM_OUTLINE_BLACK;
+
+  if not FindColorsTolerance(result, outlineColor, Area, 1) then
+    exit();
+
+  //debug('Drawing outline of item.', 1);
+  paintTPA(result, clWhite);
+
+  bounds := getTPABounds(result);
+  // Go through the TPA and transpose the points so that (b.x1, b.y1) is the origin
+  h := high(result)
+  for i := 0 to h do
+  begin
+    result[i].x := result[i].x - bounds.x1;
+    result[i].y := result[i].y - bounds.y1;
+  end;
+
+  //debug('END function getItemOutline(Area: TBox): TPointArray;', 0);
+end;
+
+procedure setInventoryState(var ATPA: T2DPointArray);
+var
+  i: Integer;
+begin
+  paintClear(tabBackpack.getBounds());
+  if players[currentPlayer].integers[P_WITHDRAW] <> 0 then
+  begin
+    setLength(ATPA, 28);
+    for i := 0 to 27 do
+    begin
+      if players[currentPlayer].booleans[P_URNS] then
+        if i = 0 or i = 1 then
+          continue();
+      ATPA[i] := getItemOutline(tabBackpack.getSlotBox(i + 1));
+    end;
+  end else
+  begin
+    setLength(ATPA, 1);
+    setLength(ATPA[0], 1);
+    i := getItemAmount(tabBackpack.getSlotBox(3));
+    debug('Products in the inventory: '+toStr(i), 1);
+    ATPA[0][0] := point(i, -1);
+  end;
+end;
+
+function T2DPointArray.contains(const ATPA: T2DPointArray): boolean;
+var
+  i, j, h_ATPA, h_self: Integer;
+begin
+  h_ATPA := high(ATPA);
+  h_self := high(self);
+  for i := 0 to h_ATPA do
+    for j := 0 to h_self do
+      if ATPA[i].equals(self[j]) then
+      begin
+        result := true;
+        exit();
+      end;
+end;
+
+//============================================================================//
+// Profit calculating functions:
+//----------------------------------------------------------------------------//
+function getGEPrice(item: String): integer;
+var
+  priceString: String;
+begin
+  if item = '' then exit();
+  priceString := GetPage('http://runescape.wikia.com/wiki/' +
+                         replace(item, ' ', '_', [rfReplaceAll]));
+  priceString := between('Exchange price', 'coins', priceString);
+  priceString := between('<span>', '</span>', priceString);
+  debug('GE price of ' +replace(item, ' ', '_', [rfReplaceAll])+ ' is ' +priceString+ '.', 1);
+  result := strToInt(priceString);
+end;
+
+function getProfit(): integer;
+var
+  primaryItem,
+  secondaryItem,
+  productItem: String;
+  primaryPrice,
+  secondaryPrice,
+  productPrice: Integer;
+begin
+  primaryItem    := players[currentPlayer].strings[P_MATERIAL_ONE];
+  secondaryItem  := players[currentPlayer].strings[P_MATERIAL_TWO];
+  productItem    := players[currentPlayer].strings[P_ITEM_NAME];
+  primaryPrice   := getGEPrice(primaryItem);
+  secondaryPrice := getGEPrice(secondaryItem);
+  productPrice   := getGEPrice(productItem);
+  result := productPrice - (primaryPrice + secondaryPrice);
+  debug('Profit is ' +intToStr(result)+ '.', 1);
+end;
+
+//============================================================================//
+// Helper functions:
+//----------------------------------------------------------------------------//
+function depositProducts(): boolean;
+begin
+  if not isLoggedIn() then exit();
+  if not bankScreen.isOpen() then exit();
+
+  if not players[currentPlayer].booleans[P_URNS] then
+  begin
+    if not bankScreen.deposit([1..28]) then
+      exit();
+  end else
+    if not bankScreen.deposit([3..28]) then
+      exit();
+
+  result := true;
+  Debug('Successfully deposited items into the bank.', 1);
+end;
+
+function withdrawSequence(isPrimary: boolean): boolean;
+
+  function firstFreePackSlot(): Integer;
+  var
+    i: Integer;
+  begin
+    for i := 1 to 28 do
+      if not bankScreen.isItemInPackSlot(i) then
+      begin
+        result := i;
+        exit;
+      end;
+    result := -1;
+  end;
+
+var
+  t: TTimeMarker;
+  i, bankSlot, packSlot, withdrawAmount: Integer;
+  bankBox: TBox;
+begin
+  if not isLoggedIn() then exit();
+  if not bankScreen.isOpen() then exit();
+
+  // Setup the variables
+  bankSlot := players[currentPlayer].integers[P_BANK_SLOT]
+  if not isPrimary then
+    bankSlot := bankSlot + 1;
+  bankBox        := bankScreen.getBankSlotBox(bankSlot);
+  withdrawAmount := players[currentPlayer].integers[P_WITHDRAW];
+
+  // Wait until an item is detected in the bankslot we want
+  t.reset();
+  t.start();
+  while not isItemIn(bankBox) do
+  begin
+    wait(randomRange(250, 500));
+    if OverTime(t, 30*1000) then
+      exit();
+  end;
+
+  // Count how much materials we have left
+  if (getItemAmount(bankBox) <= withdrawAmount) then
+  begin
+    Writeln('Out of materials.');
+    Debug('PrimaryItems: '+BoolToStr(isPrimary), 2);
+    if isPrimary then
+      players[currentPlayer].location := 'Used up all items: Primary'
+    else
+      players[currentPlayer].location := 'Used up all items: Secondary';
+
+    exit();
+  end;
+
+  // Deal with urns
+  if players[currentPlayer].booleans[P_URNS] then
+    if tabBackpack.count() = 1 then
+    begin
+      bankBox := bankScreen.getBankSlotBox(bankSlot + 2);
+      if getItemAmount(bankBox) = 1 then
+      begin
+        Writeln('One urn left.');
+        Writeln('Withdrawing, and resetting bank indices.');
+        Dec(players[currentPlayer].integers[P_BANK_SLOT]);
+        players[currentPlayer].booleans[P_URNS] := false;
+      end;
+      bankScreen.withdraw(bankSlot + 2, 1, ['']);
+    end;
+
+  // Withdraw materials
+  packSlot := firstFreePackSlot();
+  for i := 1 to 5 do
+  begin
+    if (withdrawAmount <> 28) and isPrimary then
+    begin
+      if bankScreen.withdraw(bankSlot, withdrawAmount, ['']) then
+        Break;
+    end else
+    begin
+      if bankScreen.withdraw(bankSlot, WITHDRAW_AMOUNT_ALL, ['']) then
+        Break;
+    end;
+
+    debug('Could not withdraw! '+IntToStr(i), 2);
+    if i >= 5 then
+      exit();
+  end;
+
+  // Wait until items have been withdrawn
+  t.reset();
+  t.start();
+  repeat
+    wait(RandomRange(100, 200));
+    if OverTime(t, 10*1000) then
+      break();
+  until(bankScreen.isItemInPackSlot(packSlot) or bankScreen.isPackFull());
+  wait(randomRange(500, 1000));
+  result := true;
+end;
+
+//============================================================================//
+// Main functions:
+//----------------------------------------------------------------------------//
+// function withdrawReactants(): boolean;
+//----------------------------------------------------------------------------//
+function withdrawReactants(): boolean;
+begin
+  // PRE-CONDITIONS
+  //   - Withdrawing must be set to true
+  if players[currentPlayer].integers[P_WITHDRAW] = 0 then
+  begin
+    result := true;
+    exit();
+  end;
+  //   - Must be logged in
+  if not isLoggedIn() then exit();
+  //   - No interfaces should be open (but bankScreen is okay)
+  if productionScreen.isOpen() then exit();//productionScreen.close();
+  exitTreasure();
+  closeAdWindow();
+
+  // BODY
+  //   - Open the bank
+  {if SRLBanking then}
+    if not bankScreen.open(players[currentPlayer].integers[P_BANK_LOC]) then
+      exit();
+  {else
+    mouseObject(); etc}
+  _waitBankOrPinScreen(randomRange(6000, 8000));
+  pinScreen.enter(players[currentPlayer].bankPin);
+  debug('Bank was opened successfully.', 1);
+  //   - Inventory should have only items that have been made or nothing
+  claimTicket();
+  if bankScreen.getPackCount() >= players[currentPlayer].integers[P_DEPOSIT] then
+    if not depositProducts() then
+      exit();
+  //   - Withdraw primary materials
+  wait(randomRange(500, 1000));
+  bankScreen.openTab(players[currentPlayer].integers[P_BANK_TAB]);
+  //bankScreen.scrollUp(); // waits for too long, so I commented it out
+  if not withdrawSequence(true) then
+  begin
+    if not( lowercase(players[currentPlayer].location) = '') then
+      result := true;
+
+    exit();
+  end;
+  //   - Withdraw secondary materials
+  if players[currentPlayer].integers[P_WITHDRAW] <> 28 then
+    if not withdrawSequence(false) then
+    begin
+      if not( lowercase(players[currentPlayer].location) = '') then
+        result := true;
+
+      exit();
+    end;
+
+  Debug('Successfully withdrawn items.', 1);
+  bankScreen.close();
+  tabBackpack.waitWhileLocked(); //if not then exit();
+
+  // POST-CONDITIONS
+  //   - Inventory is full
+  result := tabBackpack.isFull();
+end;
+
+//----------------------------------------------------------------------------//
+// function makeReaction(): boolean;
+//----------------------------------------------------------------------------//
+function makeReaction(): boolean;
+
+  function slotToString(i: Integer): String;
+  begin
+    result := intToStr(i);
+    case i of
+      1: result := 'Primary';
+      2: result := 'Secondary';
+    end;
+  end;
+
+var
+  i, invSlot, withdrawAmount, itemSlot: Integer;
+  t: TTimeMarker;
+  tool: String;
+begin
+  // PRE-CONDITIONS
+  //   - Must be logged in
+  if not isLoggedIn() then exit();
+  //   - Inventory tab must be open
+  if not tabBackpack.isOpen() then tabBackpack.open();
+  //   - Inventory should be full IF WITHDRAWING
+  if players[currentPlayer].integers[P_WITHDRAW] <> 0 then
+    if not tabBackpack.isFull() then exit();
+  //   - No interfaces should be open
+  if bankScreen.isOpen() then bankScreen.close();
+  if productionScreen.isOpen() then exit();//productionScreen.close();
+  exitTreasure();
+  closeAdWindow();
+
+  // BODY
+  //   - Setup the variables
+  tool           := players[currentPlayer].strings[P_TOOL];
+  itemSlot       := players[currentPlayer].integers[P_ITEM_SLOT];
+  withdrawAmount := players[currentPlayer].integers[P_WITHDRAW];
+  invSlot        := random(withdrawAmount - 1) + 1;
+  if players[currentPlayer].booleans[P_URNS] then
+    invSlot := invSlot + 2;
+  //   - Check amount of materials for modes that don't bank
+  if players[currentPlayer].integers[P_WITHDRAW] = 0 then
+  begin
+    for i := 1 to 2 do
+    if getItemAmount(tabBackpack.getSlotBox(i)) < 150 then // CHECK THIS MAGIC NUMBER
+    begin
+      writeln('Out of materials.');
+      players[currentPlayer].location := 'Used up all items: '+slotToString(i);
+      result := true;
+      exit();
+    end;
+    invSlot := 1;
+  end;
+  Debug('Random inventory slot choosen: ' +IntToStr(invSlot), 2);
+  //   - Make the first click on an item in the inventory
+  tabBackpack.mouseSlot(invSlot, mouse_left);
+  wait(RandomRange(200, 400));
+  //   - Make the second click on an item in the inventory
+  if withdrawAmount <> 28 then
+  begin
+    invSlot       := random(withdrawAmount - 1) + 15;
+    if players[currentPlayer].booleans[P_URNS] then
+      invSlot := invSlot + 2;
+    if players[currentPlayer].integers[P_WITHDRAW] = 0 then
+      invSlot := 2;
+    Debug('Random inventory slot choosen: ' +IntToStr(invSlot), 2);
+    tabBackpack.mouseSlot(invSlot, mouse_left);
+    wait(RandomRange(200, 400));
+  end;
+  //   - Find the production screen or tool selection screen
+  t.reset();
+  t.start();
+  repeat
+    if productionScreen.isOpen() then
+      break();
+
+    if toolScreen.isOpen() then
+    begin
+      toolScreen.select(tool, false);
+      t.reset();
+      t.start();
+    end;
+
+    if overTime(t, 15000) then
+    begin
+      debug('Could not find production screen or tool selection screen.', 2);
+      exit();
+    end;
+  until(false);
+  //   - Make the items
+  wait(RandomRange(500, 1000));
+  if not productionScreen.selectBox(itemSlot) then exit();
+
+  // POST-CONDITIONS
+  //   - The state of the inventory must be recorded
+  setInventoryState(itemOutlines);
+  //   - The big blue button has been press with the correct item selected
+  result := productionScreen.clickStart(false);   // false = click blue button
+end;
+
+//----------------------------------------------------------------------------//
+// function whileReaction(): boolean;
+//----------------------------------------------------------------------------//
+function whileReaction(): boolean;
+
+  function finishedWaiting(): boolean;
+  var
+    tempState: T2DPointArray;
+    products: Integer;
+  begin
+    if players[currentPlayer].integers[P_WITHDRAW] = 0 then
+    begin
+      products := getItemAmount(tabBackpack.getSlotBox(3));
+      //debug('Products in the inventory: '+toStr(products), 2);
+      if products >= (itemOutlines[0][0].x + 150) then // MAGIC NUMBER AGAIN
+        result := true;
+    end else
+    begin
+      //clearDoubleTPA(itemOutlines);
+      setInventoryState(tempState);
+      if not tempState.contains(itemOutlines) then
+        result := true;
+    end;
+  end;
+
+var
+  t: TTimeMarker;
+  itemsMade, profitMade, continue: Integer;
+  XPGained: Extended;
+begin
+  // PRE-CONDITIONS
+  //   - No interfaces should be open
+  if bankScreen.isOpen() then bankScreen.close();
+  if productionScreen.isOpen() then exit();//productionScreen.close();
+  if exitTreasure() then exit();
+  if closeAdWindow() then exit();
+
+  // BODY
+  //   -
+
+  t.reset();
+  t.start();
+  repeat
+    // LOOP INVARIANTS
+    //   - Must be logged in
+    if not isLoggedIn() then
+    begin
+      debug('Invariant does not hold; not logged in.', 1);
+      exit();
+    end;
+    //   - Inventory tab must be open
+    if not tabBackpack.isOpen() then
+      if not tabBackpack.open() then
+      begin
+        debug('Invariant does not hold; backpack not open.', 1);
+        exit();
+      end;
+    //   - Time taken is within reason (5 minutes)
+    if OverTime(t, 5*60000) then
+    begin
+      debug('Invariant does not hold; took too long.', 1);
+      debug('Do you want to continue anyway?', 1);
+      continue := messageBox('Continue?', 'Took too long to make items,'
+                +'but do you want to continue anway?', 4);
+      if continue = 6 then
+        result := true;
+      exit();
+    end;
+
+    // LOOP BODY
+    //   - Do antiban
+    if randomRange(1, antiBan) = 1 then doAntiBan();
+    //   - Wait a little while
+    wait(randomRange(1000, 2000));
+
+  until(finishedWaiting());
+
+  //   - Check for full urn
+
+  //   - Add all progress statistics
+  if players[currentPlayer].integers[P_WITHDRAW] = 0 then
+    itemsMade := 150
+  else
+    itemsMade := players[currentPlayer].integers[P_DEPOSIT];
+  profitMade := players[currentPlayer].integers[_P_ITEM_PROFIT] * itemsMade;
+  XPGained  := players[currentPlayer].extendeds[P_ITEM_XP] * itemsMade;
+  incEx(players[currentPlayer].integers[_P_PROGRESS_MADE], itemsMade);
+  incEx(players[currentPlayer].integers[_P_PROGRESS_PROFIT], profitMade);
+  incFloat(players[currentPlayer].extendeds[_P_PROGRESS_XP], XPGained);
+
+  // POST-CONDITIONS
+  //   - Inventory has only items it just made and possible urn or two
+  claimTicket();
+  result := finishedWaiting();
+  paintClear(tabBackpack.getBounds());
+end;
+
+
+
+
+
+//============================================================================//
+// procedure setupScript();
+//   -Everything initialised; all systems go.
+//============================================================================//
+procedure setupScript();
+var
+  i: Integer;
+begin
+  clearDebug();
+  disguise(ScriptName+ ' has been started!');
+  writeln(ScriptName+' is loading.');
+
+  loadGlobals();
+  declarePlayers();
+  disableSRLDebug := true;
+  disableSRLLog   := true;
+  debug('Setting up SRL.', 0);
+  setupSRL();
+
+  loadItemProperties();
+  loadModeProperties();
+
+  // Setup all individual player settings
+  for i := 0 to howManyPlayers - 1 do
+  begin
+    // Normal SRL settings
+    players[i].findMod := true;
+    players[i].worked.name := 'Player '+toStr(i);
+    players[i].worked.start();
+    players[i].worked.pause();
+
+    // For fletching
+    {$X+}
+    var M: Integer; M := players[i].integers[P_MODE];
+    var T: Integer; T := players[i].integers[P_TYPE];
+    var B: Integer; B := players[i].integers[P_BOW];
+    players[i].strings[P_ITEM_NAME]  := Item[M][T][B]._Name;
+    //players[i].strings[P_TYPE_NAME]  := Item[M][T][B]._Type;
+    players[i].integers[P_ITEM_SLOT] := Item[M][T][B]._GridLoc;
+    players[i].extendeds[P_ITEM_XP]  := Item[M][T][B]._XP;
+    players[i].integers[P_WITHDRAW]  := Mode[M]._Withdraw;
+    players[i].integers[P_DEPOSIT]   := Mode[M]._Deposit;
+    players[i].strings[P_TOOL]       := Mode[M]._Tool;
+    {$X-}
+  end;
+
+  {$IFDEF PAINT}
+    smartSetupDrawing();
+  {$ENDIF}
+
+  whenBreak:= ((1000*60)*Whenbreak);
+  addOnTerminate('ProgressReport');
+end;
+
+//============================================================================//
+// Report functions:
+//----------------------------------------------------------------------------//
+procedure calculateTotals;
+var
+  i: Integer;
+begin
+  total.XP   := 0;
+  total.made := 0;
+
+  for i := 0 to howManyPlayers - 1 do
+    total.made := total.made + players[i].integers[_P_PROGRESS_MADE];
+
+  for i := 0 to howManyPlayers - 1 do
+    total.XP := total.XP + players[i].extendeds[_P_PROGRESS_XP];
+end;
+
+procedure clearReportString;
+begin
+  setLength(reportString, 1);
+  reportString[0] := '';
+end;
+
+procedure addToReportString(s: String);
+begin
+  reportString[high(reportString)] := s;
+  setLength(reportString, length(reportString) + 1);
+end;
+
+procedure progressReport();
+var
+  i: Integer;
+begin
+  calculateTotals();
+
+  {$IFNDEF DEBUG}
+    clearDebug();
+  {$ENDIF}
+
+  ClearReportString;
+  AddToReportString('/-------------------------------------------------------------\');
+  AddToReportString('|-------------------------------------------------------------|');
+  AddToReportString(PadR('|                        Press Play''s', 62) + '|');
+  AddToReportString(PadR('|                      ' +ScriptName, 62) + '|');
+  AddToReportString(PadR('|                        Version ' + ScriptVersion, 62) + '|');
+  AddToReportString('|-------------------------------------------------------------|');
+  AddToReportString(PadR('|     TOTALS : ', 62) + '|');
+  AddToReportString(PadR('|       Time Running  : ' +MsToTime(getTimeRunning(), TIME_ABBREV), 62) + '|');
+  AddToReportString(PadR('|       Items Made    : ' +IntToStr(total.made), 62) + '|');
+  AddToReportString(PadR('|       Exp Gained    : ' +IntToStr(Round(total.XP)), 62) + '|');
+  AddToReportString(PadR('|     ', 62) + '|');
+  for i:=0 to HowManyPlayers-1 do
+  begin
+    AddToReportString(PadR('|     PLAYER ' +IntToStr(i)+ ' : [ ' +players[i].displayName+ ' ]', 62) + '|');
+    AddToReportString(PadR('|       Making        : ' +Capitalize(players[i].strings[P_ITEM_NAME]), 62) + '|');
+    AddToReportString(PadR('|       Time Running  : ' +MsToTime(players[i].worked.getTime(), TIME_ABBREV), 62) + '|');
+    AddToReportString(PadR('|       Items Made    : ' +IntToStr(players[i].Integers[_P_PROGRESS_MADE]), 62) + '|');
+    AddToReportString(PadR('|       Exp Gained    : ' +IntToStr(Round(Players[i].Extendeds[_P_PROGRESS_XP])), 62) + '|');
+    AddToReportString(PadR('|       Profit Made   : ' +IntToStr(Players[i].Integers[_P_PROGRESS_PROFIT]), 62) + '|');
+    if not ((players[i].worked.getTime()/60000) = 0) then
+    begin
+      AddToReportString(PadR('|       Exp / Hour    : ' +IntToStr(Round(Players[i].Extendeds[_P_PROGRESS_XP]*60/(players[i].worked.getTime()/60000))), 62) + '|');
+      AddToReportString(PadR('|       Profit / Hour : ' +IntToStr(Round(Players[i].Integers[_P_PROGRESS_PROFIT]*60/(players[i].worked.getTime()/60000))), 62) + '|');
+    end;
+    if not (players[i].location = '') then
+      AddToReportString(PadR('|       False Reason  : ' +players[i].location, 62) + '|');
+    AddToReportString(PadR('|     ', 62) + '|');
+  end;
+  AddToReportString(PadR('|     ', 62) + '|');
+  AddToReportString('|-------------------------------------------------------------|');
+  AddToReportString('\-------------------------------------------------------------/');
+  for i := 0 to High(ReportString) do
+      Writeln(ReportString[i]);
+end;
+
+//============================================================================//
+// procedure setupPlayer();
+//   -Logs in the players and sets it up - ready to go!
+//============================================================================//
+procedure setupPlayer();
+var
+  p: TPoint;
+  b: TBox;
+begin
+  if checkDisplayName then
+  begin
+    if isLoggedIn() then
+    begin
+      b := IntToBox(chatbox.getChatArea().X1, chatbox.getChatArea().Y2, chatbox.getChatArea().X2, chatbox.getBounds().Y2);
+      paintBox(b, clWhite);
+      PaintTPA(TPAFromText(players[currentPlayer].displayName, upChars), clWhite);
+      if not findText(p, 15921905, 10, [players[currentPlayer].displayName], [upChars], b) then
+      begin
+        writeln('Incorrect player logged in; logging out.');
+        players[currentPlayer].logout();
+        wait(randomRange(3000, 5000));
+      end;
+      paintClear(mainScreen.getBounds());
+      paintClear(chatbox.getBounds());
+    end;
+  end;
+  if not players[currentPlayer].isActive then
+  begin
+    writeln('Player ' +IntToStr(CurrentPlayer)+ ' is not active.');
+    players[currentPlayer].location := 'Set to inactive';
+    exit();
+  end;
+  players[currentPlayer].login();
+  writeln('Player ' +IntToStr(CurrentPlayer)+ ' logged in.');
+  wait(randomRange(100, 150));
+  minimap.clickCompass();
+  wait(randomRange(200, 500));
+  mainscreen.setAngle(MS_ANGLE_HIGH);
+  minimap.setAngle(players[currentPlayer].integers[P_COMPASS]);
+  exitTreasure();
+  players[currentPlayer].integers[_P_ITEM_PROFIT] := getProfit();
+
+  roundTime.reset();
+  roundTime.start();
+end;
+
+{$IFNDEF CODEINSIGHT}
+//============================================================================//
+// procedure takeBreak();
+//   -Takes a break based on the amount of time played by the current player.
+//============================================================================//
+procedure takeBreak();
+var
+  Breaktime, Timeleft, i, e: Integer;
+begin
+  if isLoggedIn() then
+    players[currentPlayer].logout;
+
+  if players[currentPlayer].worked.getTime() > (2*60*60*1000) then
+  begin
+    Breaktime:= randomRange(20*60*1000, 35*60*1000);
+  end else
+    Breaktime:= randomRange(Round(Players[CurrentPlayer].worked.getTime() / 8), Round(Players[CurrentPlayer].worked.getTime() / 4));
+
+  Writeln('Taking a break for ' + mstotime(breaktime, Time_Abbrev) );
+  Writeln('');
+
+  i := getSystemTime();
+  repeat
+    wait(10000);
+    e:= GetSystemTime;
+    timeleft:= breaktime - (e - i);
+    Disguise('We have ' + mstotime(timeleft, Time_Abbrev) + ' to go');
+  until( (e - i) >= breaktime );
+
+  Disguise('Finished break.');
+end;
+
+//============================================================================//
+// procedure logoutProcess();
+//   -Performs logout on current player, sets activeness and takes break.
+//============================================================================//
+procedure logoutProcess();
+begin
+  Debug('Loging out.', 1);
+
+  if bankScreen.isOpen() then
+    bankScreen.close();
+
+  if (not (lowercase(players[currentPlayer].location) = '')) or (not isLoggedIn()) then
+    players[currentPlayer].isActive := false;
+
+  wait(logoutDelay + random(1000));
+  players[currentPlayer].logout();
+
+  progressReport();
+
+  if not( lowercase(players[currentPlayer].location) = '') then
+    players[currentPlayer].isActive := false;
+
+  if not (players.getActive() = 0) then
+  begin
+    takeBreak();
+  end else
+    exit();
+
+  players.next(players[currentPlayer].isActive);
+end;
+
+//============================================================================//
+// function tryStep(f: TBooleanFunction, errorMsg: String): boolean;
+//   -Trys a routine 5 times before exiting and return false.
+//   -Sets 'errorMsg' as player.location.
+//============================================================================//
+function tryStep(name: String; f: TBooleanFunction; errorMsg: String): boolean;
+var
+  i: Integer;
+begin
+  debug('Attempting to excecute ' +name+ '.', 1);
+  for i := 1 to 5 do
+  begin
+    if f() then
+    begin
+      result := true;
+      break();
+    end;
+    if not isLoggedIn() then
+      if not players[currentPlayer].login() then break();
+    debug('Failed to excecute ' +name+ ' ' +intToStr(i)+ ' time(s).', 2);
+  end;
+
+  if not result then
+    players[currentPlayer].location := errorMsg;
+end;
+
+//============================================================================//
+// procedure takeAFKBreak();
+//   -Waits a random amount of time, pretending to be AFK.
+//============================================================================//
+procedure takeAFKBreak();
+begin
+  case random(25) of
+    10: begin
+          debug('Taking AFK break.', 1);
+          wait(randomRange(10000, 45000));
+        end;
+  end;
+end;
+
+//============================================================================//
+// function mainLoopSucessful(): boolean;
+//   -Performs one iteration of the main loop for a single player.
+//============================================================================//
+function mainLoopSucessful(): boolean;
+begin
+  if not tryStep('withdrawReactants()', @withdrawReactants, 'Could not withdraw reactants') then
+    exit();
+
+  if (lowercase(players[currentPlayer].location) = 'used up all items: primary')
+  or (lowercase(players[currentPlayer].location) = 'used up all items: secondary')then
+    exit();
+
+  if not tryStep('makeReaction()', @makeReaction, 'Could not make reaction') then
+    exit();
+
+  if (lowercase(players[currentPlayer].location) = 'used up all items: primary')
+  or (lowercase(players[currentPlayer].location) = 'used up all items: secondary')then
+    exit();
+
+  if not tryStep('whileReaction()', @whileReaction, 'Could not finish reaction') then
+    exit();
+
+  takeAFKBreak();
+
+  progressReport();
+
+  result:= True;
+end;
+
+//============================================================================//
+// function playerActive(): boolean;
+//   -Overwrites player.location if SRL has overwritten it; returns true
+//    if the current player is deemed to be active.
+//============================================================================//
+function playerActive(): boolean;
+var
+  arr: TVariantArray;
+begin
+  arr := __getLoginResponse(players[currentPlayer].location, 0);
+
+  if length(arr) > 0 then
+    if (arr[__RES_ACTION] = 'true')
+    or (arr[__RES_ACTION] = 'update') then
+      players[currentPlayer].location := '';
+
+  if (players[currentPlayer].location = '') then
+    result := true;
+end;
+{$ENDIF}
+
+
+
+
+{------------------------------------------------------------------------------]
+[  MAIN LOOP:                                                                  ]
+[     Where all the routines are combined into a working script!               ]
+[------------------------------------------------------------------------------}
+BEGIN
+  setupScript();
+
+  repeat
+    setupPlayer();
+
+    repeat
+
+      if not playerActive() then
+        break();
+
+      if not mainLoopSucessful() then
+        break();
+
+    until( roundTime.getTime() >= (whenBreak + randomRange(-(1000*60*3), (1000*60*3)) ) );
+
+    logoutProcess();
+
+  until( players.getActive() = 0 );
+  debug('All players are inactive.', 1);
+  debug('Script is finished.', 1);
+
+  if isLoggedIn() then
+    players[currentPlayer].logout();
+
+  terminateScript();
+END.
+{$ENDIF}

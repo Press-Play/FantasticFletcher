@@ -1,49 +1,62 @@
 //============================================================================//
 //   FF_GLOBALS.simba
 //----------------------------------------------------------------------------//
-
-{ ~~ Global Variables ~~ }
+// VARIABLES
 var
-  x, y: Integer;
-  WhenBreak, AntiBanAmount: Integer;
-  ActAFK, AutoUpdate: Boolean;
-  SRLStats_Username, SRLStats_Password: String;
+  // Variable Setup
+  whenBreak, antiBan: Integer;
+  actAFK: Boolean;
 
+  // Player Declaration
+  howManyPlayers: Integer;
+
+//----------------------------------------------------------------------------//
+// CONSTANTS
 const
-{ *** For Players }
-  P_BANK_TAB  = 0;
-  P_BANK_SLOT = 1;
-  P_MODE      = 2;
-  P_TYPE      = 3;
-  P_BOW       = 4;
-  P_BANK_LOC  = 5;
-  P_SCKNIFE   = 6;
-// Progress Report
-  P_XP        = 7;  // Extended
-  P_STRUNG    = 8;
-  P_CUT       = 9;
-  P_FLETCHED  = 10;
-// Item Property
-  P_NAME      = 11;
-  P_TYPE_NAME = 12;
-  P_XP_GAIN   = 13; // Extended
-  P_GRID_LOC  = 14;
-// Failsafe Screenshot business...
-  P_FINISHED_REACTANTS = 15; // Boolean
+  //----------------------------------------------------------------------------//
+  // Player variable indices:
+  //----------------------------------------------------------------------------//
+  //   - Integers
+  P_BANK_LOC         = 0;
+  P_BANK_TAB         = 1;
+  P_BANK_SLOT        = 2;
+  P_WITHDRAW         = 3;
+  P_DEPOSIT          = 4;
+  _P_PROGRESS_MADE   = 5;
+  _P_PROGRESS_PROFIT = 6;   // Accumulated profit
+  _P_ITEM_PROFIT     = 7;   // Profit per item
+  P_ITEM_SLOT        = 8;   // Production screen slot
+  P_COMPASS          = 9;
+  P_MODE             = 10;  // Mode
+  P_TYPE             = 11;  // Material type
+  P_BOW              = 12;  // Bow type
 
-{ *** For Modes }
-  MODE_CUT               = 0;   MODE_LAST = 7;
+  //   - Booleans
+  P_URNS             = 0;
+  //   - Strings
+  P_ITEM_NAME        = 0;   // Product name
+  P_MATERIAL_ONE     = 1;
+  P_MATERIAL_TWO     = 2;
+  P_TOOL             = 3;
+  //   - Extendeds
+  P_ITEM_XP          = 0;   // XP per item made
+  _P_PROGRESS_XP     = 1;
+
+  //----------------------------------------------------------------------------//
+  // For Modes:
+  //----------------------------------------------------------------------------//
+  MODE_CUT               = 0;   MODE_LAST = 9;
   MODE_STRING            = 1;
   MODE_SHAFTS            = 2;
   MODE_SHAFT_TO_HEADLESS = 3;
-  MODE_HEADLESS_TO_ARROW = 4;
-  //MODE_SHAFT_TO_ARROW    = ;
+  MODE_HEADLESS_TO_ARROW = 4;// same as MODE_SHAFT_TO_HEADLESS;
+  MODE_SHAFT_TO_ARROW    = 5;// same as MODE_SHAFT_TO_HEADLESS;
 
-  MODE_UNF_TO_BOLT       = 5;
-  MODE_TIP_TO_DART       = 6;
-  MODE_UNSTRUNG_CROSSBOW = 7;   // Stock + limbs = UNSTRUNG_CROSSBOW
+  MODE_UNF_TO_BOLT       = 6;// same as MODE_SHAFT_TO_HEADLESS;
+  MODE_TIP_TO_DART       = 7;// same as MODE_SHAFT_TO_HEADLESS;
+  MODE_UNSTRUNG_CROSSBOW = 8;// same as MODE_CUT;
 
-  MODE_STRING_CROSSBOW   = 1;
+  MODE_STRING_CROSSBOW   = 9;// same as MODE_STRING;   // Stock + limbs = UNSTRUNG_CROSSBOW
 
 { *** For Type (Bow) }
   TYPE_NORMAL    = 1;   TYPE_LAST = 26;
@@ -91,5 +104,4 @@ const
   DART_OFFHAND         = 8;
 
   BOW_N_A       = 0;
-
 //============================================================================//

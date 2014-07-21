@@ -1,0 +1,46 @@
+//============================================================================//
+//   FF_MODEPROPERTIES.simba
+//----------------------------------------------------------------------------//
+
+{
+  Template:
+
+  with Mode[MODE_] do
+  begin
+    _Withdraw  := ;
+    _Deposit   := ;
+    _Tool      := '';
+  end;
+}
+
+procedure LoadModeProperties;
+begin
+  with Mode[MODE_CUT] do
+  begin
+    _Withdraw  := 28;
+    _Deposit   := 28;
+    _Tool      := 'Knife';
+  end;
+
+  with Mode[MODE_STRING] do
+  begin
+    _Withdraw  := 14;
+    _Deposit   := 14;
+    _Tool      := '';
+  end;
+
+  with Mode[MODE_SHAFTS] do
+  begin
+    _Withdraw  := 28;
+    _Deposit   := 1;
+    _Tool      := 'Knife';
+  end;
+
+  with Mode[MODE_SHAFT_TO_HEADLESS] do
+  begin
+    _Withdraw  := 0;
+    _Deposit   := 0;
+    _Tool      := '';
+  end;
+end;
+//============================================================================//
