@@ -1,0 +1,107 @@
+//============================================================================//
+//   FF_GLOBALS.simba
+//----------------------------------------------------------------------------//
+// VARIABLES
+var
+  // Variable Setup
+  whenBreak, antiBan: Integer;
+  actAFK: Boolean;
+
+  // Player Declaration
+  howManyPlayers: Integer;
+
+//----------------------------------------------------------------------------//
+// CONSTANTS
+const
+  //----------------------------------------------------------------------------//
+  // Player variable indices:
+  //----------------------------------------------------------------------------//
+  //   - Integers
+  P_BANK_LOC         = 0;
+  P_BANK_TAB         = 1;
+  P_BANK_SLOT        = 2;
+  P_WITHDRAW         = 3;
+  P_DEPOSIT          = 4;
+  _P_PROGRESS_MADE   = 5;
+  _P_PROGRESS_PROFIT = 6;   // Accumulated profit
+  _P_ITEM_PROFIT     = 7;   // Profit per item
+  P_ITEM_SLOT        = 8;   // Production screen slot
+  P_COMPASS          = 9;
+  P_MODE             = 10;  // Mode
+  P_TYPE             = 11;  // Material type
+  P_BOW              = 12;  // Bow type
+
+  //   - Booleans
+  P_URNS             = 0;
+  //   - Strings
+  P_ITEM_NAME        = 0;   // Product name
+  P_MATERIAL_ONE     = 1;
+  P_MATERIAL_TWO     = 2;
+  P_TOOL             = 3;
+  //   - Extendeds
+  P_ITEM_XP          = 0;   // XP per item made
+  _P_PROGRESS_XP     = 1;
+
+  //----------------------------------------------------------------------------//
+  // For Modes:
+  //----------------------------------------------------------------------------//
+  MODE_CUT               = 0;   MODE_LAST = 9;
+  MODE_STRING            = 1;
+  MODE_SHAFTS            = 2;
+  MODE_SHAFT_TO_HEADLESS = 3;
+  MODE_HEADLESS_TO_ARROW = 4;// same as MODE_SHAFT_TO_HEADLESS;
+  //MODE_SHAFT_TO_ARROW    = 5;
+
+  MODE_UNF_TO_BOLT       = 6;// same as MODE_SHAFT_TO_HEADLESS;
+  MODE_TIP_TO_DART       = 7;// same as MODE_SHAFT_TO_HEADLESS;
+  MODE_UNSTRUNG_CROSSBOW = 8;// same as MODE_CUT;
+
+  MODE_STRING_CROSSBOW   = 9;// same as MODE_STRING;   // Stock + limbs = UNSTRUNG_CROSSBOW
+
+{ *** For Type (Bow) }
+  TYPE_NORMAL    = 1;   TYPE_LAST = 26;
+  TYPE_OAK       = 2;
+  TYPE_COMP_OGRE = 3;
+  TYPE_WILLOW    = 4;
+  TYPE_TEAK      = 5;
+  TYPE_MAPLE     = 6;
+  TYPE_MAHOGANY  = 7;
+  TYPE_YEW       = 8;
+  TYPE_MAGIC     = 9;
+
+{ *** For Type (Arrow) }
+  TYPE_BRONZE         = 10;
+  TYPE_OGRE           = 11;
+  TYPE_IRON           = 12;
+  TYPE_STEEL          = 13;
+  TYPE_MITHRIL        = 14;
+  TYPE_BROAD          = 15;
+  TYPE_ADAMANT        = 16;
+  TYPE_RUNE           = 17;
+  TYPE_ABYSSALBANE    = 18;
+  TYPE_BASILISKBANE   = 19;
+  TYPE_DRAGONBANE     = 20;
+  TYPE_WALLASALKIBANE = 21;
+  TYPE_DRAGON         = 22;
+
+  TYPE_N_A            = 0;
+
+{ *** For Type (Extras for bolts) }
+  TYPE_BLURITE        = 23;
+  TYPE_SILVER         = 24;
+  TYPE_BROAD_TIPPED   = 25;
+
+{ *** For Bow }
+  BOW_SHORT            = 1;   BOW_LAST = 8;
+  BOW_SHIELD           = 2;
+  BOW_COMP_OGRE        = 3;
+
+  BOW_CROSSBOW         = 4;
+  BOW_OFFHAND_CROSSBOW = 5;
+  BOW_2H_CROSSBOW      = 6;
+
+  DART_NORMAL          = 7;
+  DART_OFFHAND         = 8;
+
+  BOW_N_A       = 0;
+//============================================================================//

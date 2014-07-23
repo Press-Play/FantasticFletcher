@@ -1,0 +1,1172 @@
+//============================================================================//
+//   FF_ITEMPROPERTIES.simba
+//----------------------------------------------------------------------------//
+
+//============================================================================//
+// procedure LoadItemInfo;
+//   -Declares all the information for items
+//
+//       MODE_  | TYPE_ | BOW_
+//      --------------------------------
+//       CUT    | LOG   | SHORTBOW(U)
+//       CUT    | LOG   | SHIELDBOW(U)
+//       STRING | LOG   | SHORTBOW
+//       STRING | LOG   | SHIELDBOW     etc.
+//
+//============================================================================//
+
+{
+  Template:
+
+  with Item[MODE_][TYPE_][BOW_] do
+  begin
+    _Name         := '';
+    _Type         := '';
+    _Materials[0] := '';
+    _Materials[1] := '';
+    _XP           := ;
+    _GridLoc      := ;
+  end;
+}
+
+procedure LoadItemProperties;
+var
+  i: Integer;
+begin
+  //============================================================================//
+  // MODE_CUT:
+  //----------------------------------------------------------------------------//
+  //   -Bows
+  //----------------------------------------------------------------------------//
+  with Item[MODE_CUT][TYPE_NORMAL][BOW_SHORT] do
+  begin
+    _Name         := 'Shortbow (u)';
+    _Type         := 'Normal';
+    _Materials[0] := 'Logs';
+    _Materials[1] := '';
+    _XP           := 5;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_CUT][TYPE_NORMAL][BOW_SHIELD] do
+  begin
+    _Name         := 'Shieldbow (u)';
+    _Type         := 'Normal';
+    _Materials[0] := 'Logs';
+    _Materials[1] := '';
+    _XP           := 10;
+    _GridLoc      := 4;
+  end;
+
+  with Item[MODE_CUT][TYPE_OAK][BOW_SHORT] do
+  begin
+    _Name         := 'Oak shortbow (u)';
+    _Type         := 'Oak';
+    _Materials[0] := 'Oak logs';
+    _Materials[1] := '';
+    _XP           := 16.5;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_CUT][TYPE_OAK][BOW_SHIELD] do
+  begin
+    _Name         := 'Oak shieldbow (u)';
+    _Type         := 'Oak';
+    _Materials[0] := 'Oak logs';
+    _Materials[1] := '';
+    _XP           := 25;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_CUT][TYPE_COMP_OGRE][BOW_COMP_OGRE] do
+  begin
+    _Name         := 'Unstrung comp bow';
+    _Type         := 'Achey';
+    _Materials[0] := 'Achey logs';
+    _Materials[1] := '';
+    _XP           := 45;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_CUT][TYPE_WILLOW][BOW_SHORT] do
+  begin
+    _Name         := 'Willow shortbow (u)';
+    _Type         := 'Willow';
+    _Materials[0] := 'Willow logs';
+    _Materials[1] := '';
+    _XP           := 33.25;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_CUT][TYPE_WILLOW][BOW_SHIELD] do
+  begin
+    _Name         := 'Willow shieldbow (u)';
+    _Type         := 'Willow';
+    _Materials[0] := 'Willow logs';
+    _Materials[1] := '';
+    _XP           := 41.5;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_CUT][TYPE_MAPLE][BOW_SHORT] do
+  begin
+    _Name         := 'Maple shortbow (u)';
+    _Type         := 'Maple';
+    _Materials[0] := 'Maple logs';
+    _Materials[1] := '';
+    _XP           := 50;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_CUT][TYPE_MAPLE][BOW_SHIELD] do
+  begin
+    _Name         := 'Maple shieldbow (u)';
+    _Type         := 'Maple';
+    _Materials[0] := 'Maple logs';
+    _Materials[1] := '';
+    _XP           := 58.3;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_CUT][TYPE_YEW][BOW_SHORT] do
+  begin
+    _Name         := 'Yew shortbow (u)';
+    _Type         := 'Yew';
+    _Materials[0] := 'Yew logs';
+    _Materials[1] := '';
+    _XP           := 67.5;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_CUT][TYPE_YEW][BOW_SHIELD] do
+  begin
+    _Name         := 'Yew shieldbow (u)';
+    _Type         := 'Yew';
+    _Materials[0] := 'Yew logs';
+    _Materials[1] := '';
+    _XP           := 75;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_CUT][TYPE_MAGIC][BOW_SHORT] do
+  begin
+    _Name         := 'Magic shortbow (u)';
+    _Type         := 'Magic';
+    _Materials[0] := 'Magic logs';
+    _Materials[1] := '';
+    _XP           := 83.3;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_CUT][TYPE_MAGIC][BOW_SHIELD] do
+  begin
+    _Name         := 'Magic shieldbow (u)';
+    _Type         := 'Magic';
+    _Materials[0] := 'Magic logs';
+    _Materials[1] := '';
+    _XP           := 91.5;
+    _GridLoc      := 2;
+  end;
+
+  //----------------------------------------------------------------------------//
+  //   -Stocks
+  //----------------------------------------------------------------------------//
+  with Item[MODE_CUT][TYPE_NORMAL][BOW_N_A] do
+  begin
+    _Name         := 'Wooden stock';
+    _Type         := 'Normal';
+    _Materials[0] := 'Logs';
+    _Materials[1] := '';
+    _XP           := 6;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_CUT][TYPE_OAK][BOW_N_A] do
+  begin
+    _Name         := 'Oak stock';
+    _Type         := 'Oak';
+    _Materials[0] := 'Oak logs';
+    _Materials[1] := '';
+    _XP           := 16;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_CUT][TYPE_WILLOW][BOW_N_A] do
+  begin
+    _Name         := 'Willow stock';
+    _Type         := 'Willow';
+    _Materials[0] := 'Willow logs';
+    _Materials[1] := '';
+    _XP           := 22;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_CUT][TYPE_TEAK][BOW_N_A] do
+  begin
+    _Name         := 'Teak stock';
+    _Type         := 'Teak';
+    _Materials[0] := 'Teak logs';
+    _Materials[1] := '';
+    _XP           := 27;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_CUT][TYPE_MAPLE][BOW_N_A] do
+  begin
+    _Name         := 'Maple stock';
+    _Type         := 'Maple';
+    _Materials[0] := 'Maple logs';
+    _Materials[1] := '';
+    _XP           := 32;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_CUT][TYPE_MAHOGANY][BOW_N_A] do
+  begin
+    _Name         := 'Mahogany stock';
+    _Type         := 'Mahogany';
+    _Materials[0] := 'Mahogany logs';
+    _Materials[1] := '';
+    _XP           := 41;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_CUT][TYPE_YEW][BOW_N_A] do
+  begin
+    _Name         := 'Yew stock';
+    _Type         := 'Yew';
+    _Materials[0] := 'Yew logs';
+    _Materials[1] := '';
+    _XP           := 50;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_CUT][TYPE_MAGIC][BOW_N_A] do
+  begin
+    _Name         := 'Magic stock';
+    _Type         := 'Magic';
+    _Materials[0] := 'Magic logs';
+    _Materials[1] := '';
+    _XP           := 100;
+    _GridLoc      := 2;
+  end;
+
+  //============================================================================//
+  // MODE_STRING:
+  //----------------------------------------------------------------------------//
+  //   -Bows
+  //----------------------------------------------------------------------------//
+  with Item[MODE_STRING][TYPE_NORMAL][BOW_SHORT] do
+  begin
+    _Name         := 'Shortbow';
+    _Type         := 'Normal';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 5;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_STRING][TYPE_NORMAL][BOW_SHIELD] do
+  begin
+    _Name         := 'Shieldbow';
+    _Type         := 'Normal';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 10;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_STRING][TYPE_OAK][BOW_SHORT] do
+  begin
+    _Name         := 'Oak shortbow';
+    _Type         := 'Oak';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 16.5;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_STRING][TYPE_OAK][BOW_SHIELD] do
+  begin
+    _Name         := 'Oak shieldbow';
+    _Type         := 'Oak';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 25;
+    _GridLoc      := 4;
+  end;
+
+  with Item[MODE_STRING][TYPE_COMP_OGRE][BOW_COMP_OGRE] do
+  begin
+    _Name         := 'Comp ogre bow';
+    _Type         := 'Achey';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 45;
+    _GridLoc      := 5;
+  end;
+
+  with Item[MODE_STRING][TYPE_WILLOW][BOW_SHORT] do
+  begin
+    _Name         := 'Willow shortbow';
+    _Type         := 'Willow';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 33.25;
+    _GridLoc      := 6;
+  end;
+
+  with Item[MODE_STRING][TYPE_WILLOW][BOW_SHIELD] do
+  begin
+    _Name         := 'Willow shieldbow';
+    _Type         := 'Willow';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 41.5;
+    _GridLoc      := 7;
+  end;
+
+  with Item[MODE_STRING][TYPE_MAPLE][BOW_SHORT] do
+  begin
+    _Name         := 'Maple shortbow';
+    _Type         := 'Maple';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 50;
+    _GridLoc      := 8;
+  end;
+
+  with Item[MODE_STRING][TYPE_MAPLE][BOW_SHIELD] do
+  begin
+    _Name         := 'Maple shieldbow';
+    _Type         := 'Maple';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 58.2;
+    _GridLoc      := 9;
+  end;
+
+  with Item[MODE_STRING][TYPE_YEW][BOW_SHORT] do
+  begin
+    _Name         := 'Yew shortbow';
+    _Type         := 'Yew';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 67.5;
+    _GridLoc      := 10;
+  end;
+
+  with Item[MODE_STRING][TYPE_YEW][BOW_SHIELD] do
+  begin
+    _Name         := 'Yew shieldbow';
+    _Type         := 'Yew';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 75;
+    _GridLoc      := 11;
+  end;
+
+  with Item[MODE_STRING][TYPE_MAGIC][BOW_SHORT] do
+  begin
+    _Name         := 'Magic shortbow';
+    _Type         := 'Magic';
+    _Materials[0] := _Name + ' (u)';
+    _Materials[1] := 'Bowstring';
+    _XP           := 83.2;
+    _GridLoc      := 12;
+  end;
+
+  with Item[MODE_STRING][TYPE_MAGIC][BOW_SHIELD] do
+  begin
+    _Name         := 'Magic shieldbow';
+    _Type         := 'Magic';
+    _Materials[0] := '';
+    _Materials[1] := '';
+    _XP           := 91.5;
+    _GridLoc      := 13;
+  end;
+
+  //----------------------------------------------------------------------------//
+  //   -Crossbows
+  //----------------------------------------------------------------------------//
+  with Item[MODE_STRING][TYPE_BRONZE][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Bronze crossbow';
+    _Type         := 'Bronze';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 6;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_STRING][TYPE_BRONZE][BOW_2H_CROSSBOW] do
+  begin
+    _Name         := 'Bronze 2h crossbow';
+    _Type         := 'Bronze';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 6;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_STRING][TYPE_BRONZE][BOW_OFFHAND_CROSSBOW] do
+  begin
+    _Name         := 'Off-hand bronze crossbow';
+    _Type         := 'Bronze';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 6;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_STRING][TYPE_BLURITE][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Blurite crossbow';
+    _Type         := 'Blurite';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 16;
+    _GridLoc      := 4;
+  end;
+
+  with Item[MODE_STRING][TYPE_IRON][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Iron Crossbow';
+    _Type         := 'Iron';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 22;
+    _GridLoc      := 5;
+  end;
+
+  with Item[MODE_STRING][TYPE_IRON][BOW_2H_CROSSBOW] do
+  begin
+    _Name         := 'Iron 2h crossbow';
+    _Type         := 'Iron';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 22;
+    _GridLoc      := 7;
+  end;
+
+  with Item[MODE_STRING][TYPE_IRON][BOW_OFFHAND_CROSSBOW] do
+  begin
+    _Name         := 'Off-hand iron crossbow';
+    _Type         := 'Iron';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 22;
+    _GridLoc      := 6;
+  end;
+
+  with Item[MODE_STRING][TYPE_STEEL][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Steel Crossbow';
+    _Type         := 'Steel';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 27;
+    _GridLoc      := 8;
+  end;
+
+  with Item[MODE_STRING][TYPE_STEEL][BOW_2H_CROSSBOW] do
+  begin
+    _Name         := 'Steel 2h crossbow';
+    _Type         := 'Steel';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 27;
+    _GridLoc      := 10;
+  end;
+
+  with Item[MODE_STRING][TYPE_STEEL][BOW_OFFHAND_CROSSBOW] do
+  begin
+    _Name         := 'Off-hand steel crossbow';
+    _Type         := 'Steel';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 27;
+    _GridLoc      := 9;
+  end;
+
+  with Item[MODE_STRING][TYPE_MITHRIL][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Mithril crossbow';
+    _Type         := 'Mithril';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 32;
+    _GridLoc      := 11;
+  end;
+
+  with Item[MODE_STRING][TYPE_MITHRIL][BOW_2H_CROSSBOW] do
+  begin
+    _Name         := 'Mithril 2h crossbow';
+    _Type         := 'Mithril';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 32;
+    _GridLoc      := 13;
+  end;
+
+  with Item[MODE_STRING][TYPE_MITHRIL][BOW_OFFHAND_CROSSBOW] do
+  begin
+    _Name         := 'Off-hand mithril crossbow';
+    _Type         := 'Mithril';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 32;
+    _GridLoc      := 12;
+  end;
+
+  with Item[MODE_STRING][TYPE_ADAMANT][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Adamant crossbow';
+    _Type         := 'Adamant';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 41;
+    _GridLoc      := 14;
+  end;
+
+  with Item[MODE_STRING][TYPE_ADAMANT][BOW_2H_CROSSBOW] do
+  begin
+    _Name         := 'Adamant 2h crossbow';
+    _Type         := 'Adamant';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 41;
+    _GridLoc      := 16;
+  end;
+
+  with Item[MODE_STRING][TYPE_ADAMANT][BOW_OFFHAND_CROSSBOW] do
+  begin
+    _Name         := 'Off-hand adamant crossbow';
+    _Type         := 'Adamant';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 41;
+    _GridLoc      := 15;
+  end;
+
+  with Item[MODE_STRING][TYPE_RUNE][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Rune Crossbow';
+    _Type         := 'Rune';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 50;
+    _GridLoc      := 17;
+  end;
+
+  with Item[MODE_STRING][TYPE_RUNE][BOW_2H_CROSSBOW] do
+  begin
+    _Name         := 'Rune 2h crossbow';
+    _Type         := 'Rune';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 50;
+    _GridLoc      := 19;
+  end;
+
+  with Item[MODE_STRING][TYPE_RUNE][BOW_OFFHAND_CROSSBOW] do
+  begin
+    _Name         := 'Off-hand rune crossbow';
+    _Type         := 'Rune';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 50;
+    _GridLoc      := 18;
+  end;
+
+  with Item[MODE_STRING][TYPE_DRAGON][BOW_CROSSBOW] do
+  begin
+    _Name         := 'Dragon crossbow';
+    _Type         := 'Dragon';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 100;
+    _GridLoc      := 20;
+  end;
+
+  with Item[MODE_STRING][TYPE_DRAGON][BOW_2H_CROSSBOW] do
+  begin
+    _Name         := 'Dragon 2h crossbow';
+    _Type         := 'Dragon';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 100;
+    _GridLoc      := 22;
+  end;
+
+  with Item[MODE_STRING][TYPE_DRAGON][BOW_OFFHAND_CROSSBOW] do
+  begin
+    _Name         := 'Off-hand dragon crossbow';
+    _Type         := 'Dragon';
+    _Materials[0] := _Type + ' c'#39'bow (u)';
+    _Materials[1] := 'Crossbow string';
+    _XP           := 100;
+    _GridLoc      := 21;
+  end;
+
+  //============================================================================//
+  // MODE_SHAFTS:
+  //----------------------------------------------------------------------------//
+  for i := 0 to howManyPlayers - 1 do
+    if Players[i].Integers[P_MODE] = MODE_SHAFTS then
+    begin
+      Players[i].Integers[P_TYPE] := 0;
+      Players[i].Integers[P_BOW]  := 0;
+    end;
+
+  with Item[MODE_SHAFTS][0][0] do
+  begin
+    _Name         := 'Arrow shaft';
+    _Type         := 'Normal';
+    _Materials[0] := 'Logs';
+    _Materials[1] := '';
+    _XP           := 5;
+    _GridLoc      := 1;
+  end;
+
+  //============================================================================//
+  // MODE_SHAFT_TO_HEADLESS:
+  //----------------------------------------------------------------------------//
+  for i := 0 to howManyPlayers - 1 do
+    if Players[i].Integers[P_MODE] = MODE_SHAFT_TO_HEADLESS then
+    begin
+     Players[i].Integers[P_TYPE] := 0;
+     Players[i].Integers[P_BOW]  := 0;
+    end;
+
+  with Item[MODE_SHAFT_TO_HEADLESS][0][0] do
+  begin
+    _Name         := 'Headless arrow';
+    _Type         := 'N/A';
+    _Materials[0] := 'Arrow shaft';
+    _Materials[1] := 'Feather';
+    _XP           := 15;
+    _GridLoc      := 1;
+  end;
+
+  //============================================================================//
+  // MODE_HEADLESS_TO_ARROW:
+  //----------------------------------------------------------------------------//
+  for i := 0 to howManyPlayers - 1 do
+    if Players[i].Integers[P_MODE] = MODE_HEADLESS_TO_ARROW then
+      Players[i].Integers[P_BOW]  := 0;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_BRONZE][0] do
+  begin
+    _Name         := 'Bronze arrows';
+    _Type         := 'Bronze';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 39.5;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_OGRE][0] do
+  begin
+    _Name         := 'Ogre arrows';
+    _Type         := 'Ogre';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 57;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_IRON][0] do
+  begin
+    _Name         := 'Iron arrows';
+    _Type         := 'Iron';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 57.5;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_STEEL][0] do
+  begin
+    _Name         := 'Steel arrows';
+    _Type         := 'Steel';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 95;
+    _GridLoc      := 4;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_MITHRIL][0] do
+  begin
+    _Name         := 'Mithril arrows';
+    _Type         := 'Mithril';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 132.5;
+    _GridLoc      := 5;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_BROAD][0] do
+  begin
+    _Name         := 'Broad arrows';
+    _Type         := 'Broad';
+    _Materials[0] := '';  // Can't sell, so no profit
+    _Materials[1] := '';
+    _XP           := 225;
+    _GridLoc      := 6;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_ADAMANT][0] do
+  begin
+    _Name         := 'Adamant arrows';
+    _Type         := 'Adamant';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 150;
+    _GridLoc      := 7;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_RUNE][0] do
+  begin
+    _Name         := 'Rune arrows';
+    _Type         := 'Rune';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 207.4;
+    _GridLoc      := 8;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_ABYSSALBANE][0] do
+  begin
+    _Name         := 'Abyssalbane arrows';
+    _Type         := 'Abyssalbane';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 150;
+    _GridLoc      := 9;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_BASILISKBANE][0] do
+  begin
+    _Name         := 'Basiliskbane arrows';
+    _Type         := 'Basiliskbane';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 150;
+    _GridLoc      := 10;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_DRAGONBANE][0] do
+  begin
+    _Name         := 'Dragonbane arrows';
+    _Type         := 'Dragonbane';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 150;
+    _GridLoc      := 11;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_WALLASALKIBANE][0] do
+  begin
+    _Name         := 'Wallasalkibane arrows';
+    _Type         := 'Wallasalkibane';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 150;
+    _GridLoc      := 12;
+  end;
+
+  with Item[MODE_HEADLESS_TO_ARROW][TYPE_DRAGON][0] do
+  begin
+    _Name         := 'Dragon arrows';
+    _Type         := 'Dragon';
+    _Materials[0] := 'Headless arrow';
+    _Materials[1] := _Type + ' arrowtips';
+    _XP           := 244.5;
+    _GridLoc      := 13;
+  end;
+
+  //============================================================================//
+  // MODE_UNF_TO_BOLT:
+  //----------------------------------------------------------------------------//
+  for i := 0 to howManyPlayers - 1 do
+    if Players[i].Integers[P_MODE] = MODE_UNF_TO_BOLT then
+      Players[i].Integers[P_BOW] := 0;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_BRONZE][0] do
+  begin
+    _Name         := 'Bronze bolts';
+    _Type         := 'Bronze';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 5;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_BLURITE][0] do
+  begin
+    _Name         := 'Blurite bolts';
+    _Type         := 'Blurite';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 10;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_IRON][0] do
+  begin
+    _Name         := 'Iron bolts';
+    _Type         := 'Iron';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 15;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_SILVER][0] do
+  begin
+    _Name         := 'Silver bolts';
+    _Type         := 'Silver';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 25;
+    _GridLoc      := 4;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_STEEL][0] do
+  begin
+    _Name         := 'Steel bolts';
+    _Type         := 'Steel';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 35;
+    _GridLoc      := 5;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_MITHRIL][0] do
+  begin
+    _Name         := 'Mithril bolts';
+    _Type         := 'Mithril';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 50;
+    _GridLoc      := 6;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_BROAD][0] do
+  begin
+    _Name         := 'Broad-tipped bolts';
+    _Type         := 'Broad-tipped';
+    _Materials[0] := 'Unfinished broad bolts';
+    _Materials[1] := 'Feather';
+    _XP           := 30;
+    _GridLoc      := 7;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_ADAMANT][0] do
+  begin
+    _Name         := 'Adamant bolts';
+    _Type         := 'Adamant';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 70;
+    _GridLoc      := 8;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_RUNE][0] do
+  begin
+    _Name         := 'Runite bolts';
+    _Type         := 'Runite';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 100;
+    _GridLoc      := 9;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_DRAGONBANE][0] do
+  begin
+    _Name         := 'Dragonbane bolts';
+    _Type         := 'Dragonbane';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 100;
+    _GridLoc      := 10;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_WALLASALKIBANE][0] do
+  begin
+    _Name         := 'Wallasalkibane bolts';
+    _Type         := 'Wallasalkibane';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 100;
+    _GridLoc      := 11;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_BASILISKBANE][0] do
+  begin
+    _Name         := 'Basiliskbane bolts';
+    _Type         := 'Basiliskbane';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 100;
+    _GridLoc      := 12;
+  end;
+
+  with Item[MODE_UNF_TO_BOLT][TYPE_ABYSSALBANE][0] do
+  begin
+    _Name         := 'Abyssalbane bolts';
+    _Type         := 'Abyssalbane';
+    _Materials[0] := _Name + ' (unf)';
+    _Materials[1] := 'Feather';
+    _XP           := 100;
+    _GridLoc      := 13;
+  end;
+
+  //============================================================================//
+  // MODE_TIP_TO_DART:
+  //----------------------------------------------------------------------------//
+  for i := 0 to howManyPlayers - 1 do
+    if Players[i].Integers[P_MODE] = MODE_TIP_TO_DART then
+      Players[i].Integers[P_BOW] := 0;
+
+  with Item[MODE_TIP_TO_DART][TYPE_BRONZE][DART_NORMAL] do
+  begin
+    _Name         := 'Bronze dart';
+    _Type         := 'Bronze';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 1.8;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_BRONZE][DART_OFFHAND] do
+  begin
+    _Name         := 'Offhand Bronze dart';
+    _Type         := 'Bronze';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 1.8;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_IRON][DART_NORMAL] do
+  begin
+    _Name         := 'Iron dart';
+    _Type         := 'Iron';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 3.8;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_IRON][DART_OFFHAND] do
+  begin
+    _Name         := 'Offhand Iron dart';
+    _Type         := 'Iron';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 3.8;
+    _GridLoc      := 4;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_STEEL][DART_NORMAL] do
+  begin
+    _Name         := 'Steel dart';
+    _Type         := 'Steel';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 7.5;
+    _GridLoc      := 5;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_STEEL][DART_OFFHAND] do
+  begin
+    _Name         := 'Offhand Steel dart';
+    _Type         := 'Steel';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 7.5;
+    _GridLoc      := 6;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_MITHRIL][DART_NORMAL] do
+  begin
+    _Name         := 'Mithril dart';
+    _Type         := 'Mithril';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 11.2;
+    _GridLoc      := 7;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_MITHRIL][DART_OFFHAND] do
+  begin
+    _Name         := 'Offhand Mithril dart';
+    _Type         := 'Mithril';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 11.2;
+    _GridLoc      := 8;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_ADAMANT][DART_NORMAL] do
+  begin
+    _Name         := 'Adamant dart';
+    _Type         := 'Adamant';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 15;
+    _GridLoc      := 9;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_ADAMANT][DART_OFFHAND] do
+  begin
+    _Name         := 'Offhand Adamant dart';
+    _Type         := 'Adamant';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 15;
+    _GridLoc      := 10;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_RUNE][DART_NORMAL] do
+  begin
+    _Name         := 'Rune dart';
+    _Type         := 'Rune';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 18.8;
+    _GridLoc      := 11;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_RUNE][DART_OFFHAND] do
+  begin
+    _Name         := 'Offhand Rune dart';
+    _Type         := 'Rune';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 18.8;
+    _GridLoc      := 12;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_DRAGON][DART_NORMAL] do
+  begin
+    _Name         := 'Dragon dart';
+    _Type         := 'Dragon';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 25;
+    _GridLoc      := 13;
+  end;
+
+  with Item[MODE_TIP_TO_DART][TYPE_DRAGON][DART_OFFHAND] do
+  begin
+    _Name         := 'Offhand Dragon dart';
+    _Type         := 'Dragon';
+    _Materials[0] := _Type + 'dart tip';
+    _Materials[1] := 'Feather';
+    _XP           := 25;
+    _GridLoc      := 14;
+  end;
+  //============================================================================//
+  // MODE_UNSTRUNG_CROSSBOW:
+  //----------------------------------------------------------------------------//
+  for i := 0 to howManyPlayers - 1 do
+  begin
+    if Players[i].Integers[P_MODE] = MODE_UNSTRUNG_CROSSBOW then
+    begin
+      Players[i].Integers[P_BOW] := 0;
+      if Players[i].Integers[P_TYPE] >= 10 then
+        case Players[i].Integers[P_TYPE] of
+          TYPE_BRONZE  : Players[i].Integers[P_TYPE] := TYPE_NORMAL;
+          TYPE_IRON    : Players[i].Integers[P_TYPE] := TYPE_WILLOW;
+          TYPE_STEEL   : Players[i].Integers[P_TYPE] := TYPE_TEAK;
+          TYPE_MITHRIL : Players[i].Integers[P_TYPE] := TYPE_MAPLE;
+          TYPE_ADAMANT : Players[i].Integers[P_TYPE] := TYPE_MAHOGANY;
+          TYPE_RUNE    : Players[i].Integers[P_TYPE] := TYPE_YEW;
+          TYPE_DRAGON  : Players[i].Integers[P_TYPE] := TYPE_MAGIC;
+        end;
+    end;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_NORMAL][0] do
+  begin
+    _Name         := 'Bronze c'#39'bow (u)';
+    _Type         := 'Wood';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Bronze limbs';
+    _XP           := 12;
+    _GridLoc      := 1;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_OAK][0] do
+  begin
+    _Name         := 'Blurite c'#39'bow (u)';
+    _Type         := 'Oak';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Blurite limbs';
+    _XP           := 32;
+    _GridLoc      := 2;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_WILLOW][0] do
+  begin
+    _Name         := 'Iron c'#39'bow (u)';
+    _Type         := 'Willow';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Iron limbs';
+    _XP           := 44;
+    _GridLoc      := 3;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_TEAK][0] do
+  begin
+    _Name         := 'Steel c'#39'bow (u)';
+    _Type         := 'Teak';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Steel limbs';
+    _XP           := 54;
+    _GridLoc      := 4;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_MAPLE][0] do
+  begin
+    _Name         := 'Mithril c'#39'bow (u)';
+    _Type         := 'Maple';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Mithril limbs';
+    _XP           := 64;
+    _GridLoc      := 5;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_MAHOGANY][0] do
+  begin
+    _Name         := 'Adamant c'#39'bow (u)';
+    _Type         := 'Mahogany';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Adamant limbs';
+    _XP           := 82;
+    _GridLoc      := 6;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_YEW][0] do
+  begin
+    _Name         := 'Rune c'#39'bow (u)';
+    _Type         := 'Yew';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Rune limbs';
+    _XP           := 100;
+    _GridLoc      := 7;
+  end;
+
+  with Item[MODE_UNSTRUNG_CROSSBOW][TYPE_MAGIC][0] do
+  begin
+    _Name         := 'Dragon c'#39'bow (u)';
+    _Type         := 'Magic';
+    _Materials[0] := _Name + ' stock';
+    _Materials[1] := 'Dragon limbs';
+    _XP           := 200;
+    _GridLoc      := 8;
+  end;
+end;

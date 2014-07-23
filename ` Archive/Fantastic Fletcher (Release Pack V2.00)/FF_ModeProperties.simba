@@ -1,0 +1,58 @@
+//============================================================================//
+//   FF_MODEPROPERTIES.simba
+//----------------------------------------------------------------------------//
+
+{
+  Template:
+
+  with Mode[MODE_] do
+  begin
+    _Withdraw  := ;
+    _Deposit   := ;
+    _Tool      := '';
+  end;
+}
+
+procedure LoadModeProperties;
+begin
+  with Mode[MODE_CUT] do
+  begin
+    _Withdraw  := 28;
+    _Deposit   := 28;
+    _Tool      := 'Knife';
+    _ItemsMade := 'Logs Cut';
+  end;
+
+  with Mode[MODE_STRING] do
+  begin
+    _Withdraw  := 14;
+    _Deposit   := 14;
+    _Tool      := '';
+    _ItemsMade := 'Bow'#39's Strung';
+  end;
+
+  with Mode[MODE_SHAFTS] do
+  begin
+    _Withdraw  := 28;
+    _Deposit   := 1;
+    _Tool      := 'Knife';
+    _ItemsMade := 'Logs Cut';
+  end;
+
+  with Mode[MODE_SHAFT_TO_HEADLESS] do
+  begin
+    _Withdraw  := 0;
+    _Deposit   := 0;
+    _Tool      := 'Knife';
+    _ItemsMade := 'Fletched';
+  end;
+
+  Mode[MODE_HEADLESS_TO_ARROW] := Mode[MODE_SHAFT_TO_HEADLESS];
+  //Mode[MODE_SHAFT_TO_ARROW]    := ;
+  Mode[MODE_UNF_TO_BOLT]       := Mode[MODE_SHAFT_TO_HEADLESS];
+  Mode[MODE_TIP_TO_DART]       := Mode[MODE_SHAFT_TO_HEADLESS];
+  Mode[MODE_UNSTRUNG_CROSSBOW] := Mode[MODE_CUT];
+  Mode[MODE_STRING_CROSSBOW]   := Mode[MODE_STRING];
+
+end;
+//============================================================================//
