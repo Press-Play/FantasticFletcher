@@ -1,13 +1,13 @@
 program AIO_BankStander;
 {$DEFINE SMART}
-{$I SRL/SRL-6/SRL.simba}
+{$I SRL-6/SRL.simba}
 
 {$I FF_Globals.simba}
 {$DEFINE DEBUG}
 {$DEFINE SCREENSHOT}
 {$DEFINE PAINT}
+//{$DEFINE FORM}
 {$DEFINE UPDATE}
-{$DEFINE ANITLEECH}
 
 {
 
@@ -92,10 +92,8 @@ begin
     isMember      := true;
     isActive      := true;
   end;
-
 end;
 
-{$IFDEF ANITLEECH}
 {==============================================================================}
 {                STOP STOP   STOP STOP   STOP-STOP    STOP STOP                }
 {                STOP           STOP     STOP STOP    STOP     |               }
@@ -115,7 +113,6 @@ const
   SRLBanking       = true;   // Use SRL's functions for bank detection?
   useQuickWithdraw = false;  // If true, loadout must be set to 1st preset
   logoutDelay      = 0;      // Wait before logging out; for debugging
-  checkDisplayName = false;  // Checks to see if the display name is right after logging in.
 
 type
   TBooleanFunction = function(): boolean;
@@ -134,7 +131,7 @@ type
 
   TModeProperties = record      // Record for all mode properties
     _Withdraw, _Deposit: Integer;
-    _Tool: String;
+    _Tool, _ItemsMade: String;
   end;
 
 
@@ -150,6 +147,11 @@ var
 
 {$I FF_ItemProperties.simba}
 {$I FF_ModeProperties.simba}
+
+procedure debug(w: string; lvl: Integer); forward;
+{$IFDEF FORM}
+  {$I FF_PlayerForm.simba}
+{$ENDIF}
 
 {$IFNDEF CODEINSIGHT}
 //============================================================================//
@@ -173,6 +175,34 @@ begin
     writeln(w);
   {$ELSE}
     status(w);
+  {$ENDIF}
+end;
+
+//============================================================================//
+// procedure DebugScreen(reason: String);
+//   -Saves a screenshot to 'reason' if SCREENSHOT is defined.
+//============================================================================//
+procedure DebugScreen(reason: String);
+var
+  bmpF, i: Integer;
+  TPAName, TPAStats: TPointArray;
+begin
+  {$IFDEF SCREENSHOT}
+    if not DirectoryExists(ScriptPath + 'Screenshots/') then
+      if not CreateDirectory(ScriptPath + 'Screenshots/') then
+        Exit;
+
+    bmpF := BitmapFromClient(0, 0, minimap.getBounds().x2+1, chatbox.getBounds().y2+1);
+    TPAName := TPAFromBox(IntToBox(chatbox.getChatArea().X1, chatbox.getChatArea().Y2, chatbox.getChatArea().X2, chatbox.getBounds().Y2));
+    TPAStats := TPAFromBox(actionbar.getBounds());
+    for i := 0 to High(TPAName) do
+      FastSetPixel(bmpF, TPAName[i].x, TPAName[i].y, clWhite);
+    for i := 0 to High(TPAStats) do
+      FastSetPixel(bmpF, TPAStats[i].x, TPAStats[i].y, clWhite);
+
+    SaveBitmap(bmpF, ScriptPath + 'Screenshots/' +reason+ '.png');
+    //SaveScreenshot(ScriptPath + 'Screenshots/' +reason+ '.png');
+    Debug('Screenshot saved.', 0);
   {$ENDIF}
 end;
 
@@ -385,12 +415,13 @@ var
   priceString: String;
 begin
   if item = '' then exit();
-  priceString := GetPage('http://runescape.wikia.com/wiki/' +
-                         replace(item, ' ', '_', [rfReplaceAll]));
+  item := replace(item, ' ', '_', [rfReplaceAll]);
+  item := replace(item, #39, '%27', [rfReplaceAll]);
+  priceString := GetPage('http://runescape.wikia.com/wiki/' + item);
   priceString := between('Exchange price', 'coins', priceString);
   priceString := between('<span>', '</span>', priceString);
   debug('GE price of ' +replace(item, ' ', '_', [rfReplaceAll])+ ' is ' +priceString+ '.', 1);
-  result := strToInt(priceString);
+  result := strToIntDef(extractFromStr(priceString, numbers), 0);
 end;
 
 function getProfit(): integer;
@@ -676,7 +707,7 @@ begin
 
     if toolScreen.isOpen() then
     begin
-      toolScreen.select(tool, false);
+      toolScreen.select(tool, false); //not compatable in SRL6 for new Simba
       t.reset();
       t.start();
     end;
@@ -695,7 +726,7 @@ begin
   //   - The state of the inventory must be recorded
   setInventoryState(itemOutlines);
   //   - The big blue button has been press with the correct item selected
-  result := productionScreen.clickStart(false);   // false = click blue button
+  result := productionScreen.clickStart(false);   // false = click blue button | not compatable in SRL6 for new Simba
 end;
 
 //----------------------------------------------------------------------------//
@@ -779,7 +810,7 @@ begin
 
   //   - Add all progress statistics
   if players[currentPlayer].integers[P_WITHDRAW] = 0 then
-    itemsMade := 150
+    itemsMade := 10
   else
     itemsMade := players[currentPlayer].integers[P_DEPOSIT];
   profitMade := players[currentPlayer].integers[_P_ITEM_PROFIT] * itemsMade;
@@ -811,8 +842,18 @@ begin
   disguise(ScriptName+ ' has been started!');
   writeln(ScriptName+' is loading.');
 
-  loadGlobals();
-  declarePlayers();
+  {$IFDEF FORM}
+    Form_Run();
+    if not formSetupComplete then
+    begin
+      writeln('Closed form setup, terminating script.');
+      terminateScript();
+    end;
+  {$ELSE}
+    loadGlobals();
+    declarePlayers();
+  {$ENDIF}
+
   disableSRLDebug := true;
   disableSRLLog   := true;
   debug('Setting up SRL.', 0);
@@ -835,13 +876,15 @@ begin
     var M: Integer; M := players[i].integers[P_MODE];
     var T: Integer; T := players[i].integers[P_TYPE];
     var B: Integer; B := players[i].integers[P_BOW];
-    players[i].strings[P_ITEM_NAME]  := Item[M][T][B]._Name;
+    players[i].strings[P_ITEM_NAME]    := Item[M][T][B]._Name;
     //players[i].strings[P_TYPE_NAME]  := Item[M][T][B]._Type;
-    players[i].integers[P_ITEM_SLOT] := Item[M][T][B]._GridLoc;
-    players[i].extendeds[P_ITEM_XP]  := Item[M][T][B]._XP;
-    players[i].integers[P_WITHDRAW]  := Mode[M]._Withdraw;
-    players[i].integers[P_DEPOSIT]   := Mode[M]._Deposit;
-    players[i].strings[P_TOOL]       := Mode[M]._Tool;
+    players[i].integers[P_ITEM_SLOT]   := Item[M][T][B]._GridLoc;
+    players[i].extendeds[P_ITEM_XP]    := Item[M][T][B]._XP;
+    players[i].strings[P_MATERIAL_ONE] := Item[M][T][B]._Materials[0];
+    players[i].strings[P_MATERIAL_TWO] := Item[M][T][B]._Materials[1];
+    players[i].integers[P_WITHDRAW]    := Mode[M]._Withdraw;
+    players[i].integers[P_DEPOSIT]     := Mode[M]._Deposit;
+    players[i].strings[P_TOOL]         := Mode[M]._Tool;
     {$X-}
   end;
 
@@ -885,6 +928,7 @@ end;
 procedure progressReport();
 var
   i: Integer;
+  itemsMade: String;
 begin
   calculateTotals();
 
@@ -906,10 +950,10 @@ begin
   AddToReportString(PadR('|     ', 62) + '|');
   for i:=0 to HowManyPlayers-1 do
   begin
-    AddToReportString(PadR('|     PLAYER ' +IntToStr(i)+ ' : [ ' +players[i].displayName+ ' ]', 62) + '|');
-    AddToReportString(PadR('|       Making        : ' +Capitalize(players[i].strings[P_ITEM_NAME]), 62) + '|');
+    AddToReportString(PadR('|     PLAYER ' +IntToStr(i)+ ' : [ ' +Capitalize(players[i].strings[P_ITEM_NAME])+ ' ]', 62) + '|');
     AddToReportString(PadR('|       Time Running  : ' +MsToTime(players[i].worked.getTime(), TIME_ABBREV), 62) + '|');
-    AddToReportString(PadR('|       Items Made    : ' +IntToStr(players[i].Integers[_P_PROGRESS_MADE]), 62) + '|');
+    itemsMade := PadR(Mode[players[currentPlayer].integers[P_MODE]]._ItemsMade, 14);
+    AddToReportString(PadR('|       '+itemsMade+': ' +IntToStr(players[i].Integers[_P_PROGRESS_MADE]), 62) + '|');
     AddToReportString(PadR('|       Exp Gained    : ' +IntToStr(Round(Players[i].Extendeds[_P_PROGRESS_XP])), 62) + '|');
     AddToReportString(PadR('|       Profit Made   : ' +IntToStr(Players[i].Integers[_P_PROGRESS_PROFIT]), 62) + '|');
     if not ((players[i].worked.getTime()/60000) = 0) then
@@ -937,23 +981,6 @@ var
   p: TPoint;
   b: TBox;
 begin
-  if checkDisplayName then
-  begin
-    if isLoggedIn() then
-    begin
-      b := IntToBox(chatbox.getChatArea().X1, chatbox.getChatArea().Y2, chatbox.getChatArea().X2, chatbox.getBounds().Y2);
-      paintBox(b, clWhite);
-      PaintTPA(TPAFromText(players[currentPlayer].displayName, upChars), clWhite);
-      if not findText(p, 15921905, 10, [players[currentPlayer].displayName], [upChars], b) then
-      begin
-        writeln('Incorrect player logged in; logging out.');
-        players[currentPlayer].logout();
-        wait(randomRange(3000, 5000));
-      end;
-      paintClear(mainScreen.getBounds());
-      paintClear(chatbox.getBounds());
-    end;
-  end;
   if not players[currentPlayer].isActive then
   begin
     writeln('Player ' +IntToStr(CurrentPlayer)+ ' is not active.');
@@ -1018,7 +1045,10 @@ begin
     bankScreen.close();
 
   if (not (lowercase(players[currentPlayer].location) = '')) or (not isLoggedIn()) then
+  begin
+    debugScreen(capitalize(players[currentPlayer].location)+'_'+msToTime(getTimeRunning(), TIME_ABBREV));
     players[currentPlayer].isActive := false;
+  end;
 
   wait(logoutDelay + random(1000));
   players[currentPlayer].logout();
@@ -1162,4 +1192,3 @@ BEGIN
 
   terminateScript();
 END.
-{$ENDIF}
